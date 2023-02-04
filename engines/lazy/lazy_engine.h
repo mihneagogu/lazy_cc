@@ -5,6 +5,7 @@ namespace sitcky {
   constexpr int INT_STICKY = std::numeric_limits<int>::min();
 }
 
+
 namespace lazy {
 
   using Time = int;
@@ -21,6 +22,7 @@ namespace lazy {
     Time t_;
     int val_;
   };
+
 
   class IntColumn {
     public:
@@ -75,5 +77,39 @@ do this by aggregating computation across >1 transaction, basically interleaving
 logic if this is sound? Maybe another thread which analyzes transaction structure
 while it's not being substantiated)
 */
+
+/*
+  TODO: Exemplify lazy transaction layout in memory and how it works exactly
+  in terms of code
+  TODO: Actually implement that here
+  TODO: Ask about SQL interpretation, how we should do it, how it's usually done?
+
+   To actually store an array of transcations probably need type erasure 
+    or clasic c-style function pointers
+  void transaction1(Database& db) {
+    // this is actual execution
+    db->tuple_a.x = db->tuple_s.b * db->tuple_z.a;
+    db->tuple_b.x = 2;
+    db->tuple_c.y = 3;
+    db->tuple_d.z = 4;
+  }
+
+  After sitckification phase we should store something like this, so perhaps
+  besides the code itself there should be an interpreted version of the code which
+  contains the commands [Write(...) = Read(...) * Read(...), Write(...) = 2]
+  class Trans {
+    function_pointer;
+
+    to be determined while looking at transaction code or by partially running
+    it
+    read_set; 
+
+    to be determined while looking at transaction code or by partially running
+    it
+    write_set; <- to be determined while looking at transaction code
+  }
+
+*/
+
 
 } // namespace lazy
