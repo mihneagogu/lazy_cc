@@ -29,18 +29,25 @@ namespace lazy {
   struct BinAddOp { };
   struct BinMulOpp { };
 
-  class Operation {
+  struct Operation {
     OperationTy ty_;
     union {
-      int read_;
-      int write_;
+      ReadOp read_;
+      WriteOp write_;
       int bin_add_;
       int constant_;
     } op_;
+
+    bool is_read() const;
+    bool is_write() const;
+    int read_slot() const;
+    int write_slot() const;
   };
 
   class Transaction {
     public:
+      // SUG: Heuristic for how many slots would be a read or write so we can
+      // pre-allocate
       Transaction(std::vector<Operation>&& ops): operations_(std::move(ops)) {}
 
       /* Read the operations and decide the read-set and write-set of a transaction */

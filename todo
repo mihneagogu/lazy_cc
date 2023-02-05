@@ -1,0 +1,19 @@
+time-versioned lazy:
+- exemplify lazy transaction layout in memory and how it works (in words) (X)
+- create dependency graph when stickifying
+
+2pc:
+- exenmplify transaction layout in memory and how it works (in words)
+- implement transaction logic and also lock dependency graph (needed to avoid deadlocks)
+
+time-versioned eager:
+- exemplify lazy transaction layout in memory and how it works (in words) (...)
+
+
+
+
+
+misc:
+- ask about sql interpretations, how we should do it, how it's usually done? interpreted or somehow else
+- actually why compare lazy transaction processing to 2pc. lazy trans processing is a tactic for computing the code of the transaction, the "locking part" should be done by the time-versioning of the transaction. In some sense, it makes more sense to compare lazy transaction processing with time-version databases which try to eagerly evaluate computation. E.g use row-partitioning per core and use eager and lazy evaluation
+

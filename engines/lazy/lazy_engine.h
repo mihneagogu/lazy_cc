@@ -14,6 +14,26 @@ namespace lazy {
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
   }
 
+
+  class Clock {
+    public:
+      Clock(): current_time_(constants::T0) {}
+      int time() const;
+      void advance();
+    private:
+      // SUG: Use something which doesn't hammer this variable in a concurrent
+      // context?
+      int current_time_; 
+  };
+
+  static Clock clock;
+
+  class Globals {
+    public:
+      // SUG: folly::Singleton ?
+      static Clock clock;
+  };
+
   class DependencyGraph {
 
   };
@@ -43,8 +63,8 @@ while it's not being substantiated)
 
 /*
   TODO: Exemplify lazy transaction layout in memory and how it works exactly
-  in terms of code
-  TODO: Actually implement that here
+  in terms of code (X)
+  TODO: Create dependency graph when stickifying
   TODO: Ask about SQL interpretation, how we should do it, how it's usually done?
 
    To actually store an array of transcations probably need type erasure 
