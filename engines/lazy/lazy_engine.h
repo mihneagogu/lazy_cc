@@ -91,8 +91,11 @@ while it's not being substantiated)
   Split is done manually by the user (assumed here).
   The now-phase contains at least all of the reads needed to do all the integrity checks (and potentially actually
   all the computation), after which stickies are inserted.
-  Stickification itself is only part of the now-phase, potentially the now-phase could
-  include more than stickification (according to the paper).
+  Stickification itself is only part of the now-phase (at the end), potentially the now-phase could
+  include more than stickification (according to the paper). Sometimes reading of records
+  is inevitable if the system has no way of telling where to write the stickies 
+  when reading the query. The now-phase *must* contain all the work necessary to
+  determine a transaction's read/write-set
 
   The dependency graph cannot be done when stickification happens. A transactioni
   is dependent on another when it tries to read a record which is a sticky made 
