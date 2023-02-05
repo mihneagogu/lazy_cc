@@ -1,9 +1,7 @@
+#pragma once
+
 #include <limits>
 #include <vector>
-
-namespace sitcky {
-  constexpr int INT_STICKY = std::numeric_limits<int>::min();
-}
 
 
 namespace lazy {
@@ -16,44 +14,9 @@ namespace lazy {
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
   }
 
-  struct IntSlot {
-    IntSlot(Time t, int value): t_(t), val_(value) {}
-    IntSlot(): t_(constants::T_INVALID) {}
-    Time t_;
-    int val_;
-  };
-
-
-  class IntColumn {
-    public:
-      IntColumn(int ntuples): ntuples_(ntuples) {
-        data_.reserve(constants::TIMESTAMPS_PER_TUPLE * ntuples);
-      }
-      static IntColumn from_raw(int ntuples, int* data);
-      IntColumn(std::vector<int> data);
-    private:
-
-      // What is the logical capacity of records of this
-      int ntuples_;
-
-      // How many latest-version records are we storing? (either sticky or not)
-      int occupied_;
-
-      // How many slots are occupied (a record with x written-to timestamps occupies x actual size slots)
-      int actual_size_; 
-      
-      // Worth using manual allocation to avoid default ctor being called everywhere?
-      std::vector<IntSlot> data_;
-  };
-
   class DependencyGraph {
 
   };
-
-  // columnar format?
-  // array of [5; tuple.a] for first field
-  // array of [5; tuple.b] for second field
-  // array of [5; tuple.c] for second field
 
   /*
      8/10 cores used. Why 8/10 only though? (perhaps assuming other work is used on the other 2 cores, e.g os, other infrastructure which is running on the machine?)
