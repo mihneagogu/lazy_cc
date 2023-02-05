@@ -20,7 +20,6 @@ namespace lazy {
   }
 
   void Transaction::stickify() {
-    // add to r/w set and then put a sticky
     for (const auto& op : operations_) {
       if (op.is_read()) {
         read_set_.push_back(op.read_slot());

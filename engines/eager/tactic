@@ -1,0 +1,16 @@
+split memory region into 8 cores
+each chore has a queue of requests to serve.
+transactions: if only in one region, gets put into log and executed when the log
+gets to it, so god bless. If cross-region, then need to send message to the core
+which handles that. In some sense, you would need to put the part of code 
+which accesses another thread's region into their queue and wait for them to serve that.
+It's not actually using locks per se, but it is a blocking mechanism.
+
+
+How is stickies different to this? Well, stickies don't use precise memory region allocation
+or 0 memory allocation (like 2pc), they are more of a hybrid. Every worker thread that 
+substantiates records tries to run it until it has substantiated everything. It locks
+if two threads try to run the same transaction. Is there any problem with concurrency in this case?
+  Well, one of them will get to the given transaction first and the other must block. But that's the end of it.
+
+

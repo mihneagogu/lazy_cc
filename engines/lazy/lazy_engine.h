@@ -9,8 +9,7 @@ namespace lazy {
   using Time = int;
   namespace constants {
     static constexpr Time T0 = 1;
-    static constexpr Time T_STICKY = 0;
-    static constexpr Time T_INVALID = -1;
+    static constexpr Time T_INVALID = std::numeric_limits<int>::max();
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
   }
 
@@ -32,10 +31,6 @@ namespace lazy {
     public:
       // SUG: folly::Singleton ?
       static Clock clock;
-  };
-
-  class DependencyGraph {
-
   };
 
   /*
@@ -91,6 +86,35 @@ while it's not being substantiated)
     it
     write_set; <- to be determined while looking at transaction code
   }
+
+  Generally, transactions are split between now and later phases:
+  Split is done manually by the user (assumed here).
+  The now-phase contains at least all of the reads needed to do all the integrity checks (and potentially actually
+  all the computation), after which stickies are inserted.
+  Stickification itself is only part of the now-phase, potentially the now-phase could
+  include more than stickification (according to the paper).
+
+  The dependency graph cannot be done when stickification happens. A transactioni
+  is dependent on another when it tries to read a record which is a sticky made 
+  by another transaction. Since we do not do any record reads (hopefully, realistically we do for IC)
+  when putting stickies, this has to happend dynamically at substantiation time.
+
+  For this implementation, the now-phase will only contain stickification.
+
+  Substantiation happens when a client attempts to read a sticky, in which case
+  the transaction which made that sticky has to run and the dependency graph is built.
+
+  stickify(): 
+  - construct read/write set of each transaction based on the operations
+  - insert sticky for write operation
+
+  when a client tries to read a value and there is a sticky, that's when we
+  substantiate():
+  - execute transaction which caused read, and all the transactions it transitively
+  depends on (locking the graph on that path)
+
+  Realistically in the now-phase, when the implementation is more complete, we need
+  to do more things, like integrity checking, constraint violation and other stuff
 
 */
 

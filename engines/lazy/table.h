@@ -8,11 +8,17 @@ namespace lazy {
 
   };
 
+  /*
+    If t > 0, then represents (time of write, value),
+    otherwise represents (-time of sticky insertion, transaction id)
+  */
   struct IntSlot {
     IntSlot(Time t, int value): t_(t), val_(value) {}
     IntSlot(): t_(constants::T_INVALID) {}
     Time t_;
     int val_;
+    // bool is_sticky() const;
+    // int get_transaction_id() const;
   };
 
 
