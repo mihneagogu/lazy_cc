@@ -1,6 +1,10 @@
 #pragma once
 
+#include <string>
+#include <stdexcept>
+
 #include "lazy_engine.h"
+#include "request.h"
 #include "types.h"
 
 namespace lazy {
@@ -12,20 +16,13 @@ namespace lazy {
   struct IntSlot {
     IntSlot(Time time, int value): t_(time), val_(value) {}
     IntSlot(): t_(constants::T_INVALID) {}
-    static IntSlot sticky(Time t, Transaction::Tid tid);
+    static IntSlot sticky(Time t, Request::Tid tid);
 
     Time t_;
     int val_;
     bool is_invalid() const;
     // bool is_sticky() const;
     // int get_transaction_id() const;
-  };
-
-  class TimeversionsFullException : public std::exception {
-    public:
-      char* what() {
-        return "Timeseries is full for a certain slot";
-      }
   };
 
   class IntColumn {

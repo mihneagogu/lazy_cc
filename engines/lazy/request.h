@@ -2,14 +2,13 @@
 
 #include <vector>
 
-#include "table.h"
 #include "lazy_engine.h"
 #include "types.h"
 
 namespace lazy {
 
   // typedef int (*TransactionComputation)(Table&);
-  using TransactionComputation = int;
+  using Computation = int;
 
   enum OperationTy {
     READ, WRITE, BIN_MUL, BIN_ADD, CONSTANT
@@ -48,15 +47,15 @@ namespace lazy {
   };
 
 
-  class Transaction {
+  class Request {
     public:
       using Tid = int;
 
 
       // SUG: Heuristic for how many slots would be a read or write so we can
       // pre-allocate
-      Transaction(std::vector<Operation>&& ops): operations_(std::move(ops)) {
-        tid_ = ++transaction_cnt;
+      Request(std::vector<Operation>&& ops): operations_(std::move(ops)) {
+        tid_ = ++request_cnt;
         epoch_ = Globals::clock_.advance();
       }
 
@@ -69,16 +68,17 @@ namespace lazy {
     private:
       void insert_sticky(int slot);
 
-      static Tid transaction_cnt;
+      static Tid request_cnt;
 
       // sorted in prefix notation to avoid recursive types
       // how about recursive type with allocated arena?
       std::vector<Operation> operations_;
-      TransactionComputation fp_;
+      Computation fp_;
       std::vector<int> read_set_; // slots, but at what time?
       std::vector<int> write_set_; // slots, but at what time?
       Tid tid_; // slots, but at what time?
       Time epoch_; // slots, but at what time?
+      bool is_trans_ = false;
   };
 
 } // namespace lazy

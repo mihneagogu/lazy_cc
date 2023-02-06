@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "types.h"
-#include "table.h"
-#include "transaction.h"
 
 
 namespace lazy {
+
+  class Table;
 
   namespace constants {
     static constexpr Time T0 = 1;
@@ -34,7 +34,8 @@ namespace lazy {
     public:
       // SUG: folly::Singleton ?
       static Clock clock_;
-      static Table table_;
+      static Table* table_;
+      static void shutdown();
   };
 
   /*

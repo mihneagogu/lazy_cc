@@ -1,4 +1,5 @@
-#include "transaction.h"
+#include "request.h"
+#include "table.h"
 #include "lazy_engine.h"
 
 namespace lazy {
@@ -19,12 +20,13 @@ namespace lazy {
     return op_.write_.slot_;
   }
 
-  Transaction::Tid Transaction::transaction_cnt = 0;
+  Request::Tid Request::request_cnt = 0;
 
-  void Transaction::insert_sticky(int slot) {
+  void Request::insert_sticky(int slot) {
+    Globals::table_->insert_at(0, slot, IntSlot::sticky(epoch_, tid_));
   }
 
-  void Transaction::stickify() {
+  void Request::stickify() {
     for (const auto& op : operations_) {
       if (op.is_read()) {
         read_set_.push_back(op.read_slot());
@@ -33,10 +35,7 @@ namespace lazy {
         write_set_.push_back(slot);
         insert_sticky(slot);
       }
-
-      // TODO: dependency graph creation
     }
-    auto t = Globals::clock_.time();
   }
 } // namespace lazy
 
