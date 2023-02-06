@@ -3,22 +3,25 @@
 #include <limits>
 #include <vector>
 
+#include "types.h"
+#include "table.h"
+#include "transaction.h"
+
 
 namespace lazy {
 
-  using Time = int;
   namespace constants {
     static constexpr Time T0 = 1;
     static constexpr Time T_INVALID = std::numeric_limits<int>::max();
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
-  }
+  } // namespace constants
 
 
   class Clock {
     public:
       Clock(): current_time_(constants::T0) {}
-      int time() const;
-      void advance();
+      Time time() const;
+      Time advance();
     private:
       // SUG: Use something which doesn't hammer this variable in a concurrent
       // context?
@@ -30,7 +33,8 @@ namespace lazy {
   class Globals {
     public:
       // SUG: folly::Singleton ?
-      static Clock clock;
+      static Clock clock_;
+      static Table table_;
   };
 
   /*

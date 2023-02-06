@@ -1,7 +1,9 @@
 CC = g++
-FLAGS = -g
+FLAGS = -g # -I$(LAZY)
+
 SRC = main.cpp
-LAZY_SRC = main.cpp engines/lazy/table.cpp engines/lazy/lazy_engine.cpp
+LAZY = ./engines/lazy
+LAZY_SRC = main.cpp $(wildcard $(LAZY)/*.cpp)
 OPT_FLAGS = -g -O3
 
 all: build
