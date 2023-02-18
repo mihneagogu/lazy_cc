@@ -16,7 +16,7 @@ namespace lazy {
   struct IntSlot {
     IntSlot(Time time, int value): t_(time), val_(value) {}
     IntSlot(): t_(constants::T_INVALID) {}
-    static IntSlot sticky(Time t, Request::Tid tid);
+    static IntSlot sticky(Time t, Tid tid);
 
     Time t_;
     int val_;
@@ -52,7 +52,7 @@ namespace lazy {
   class Table {
     public:
         Table() = default;
-        Table(std::vector<IntColumn>&& cols): cols_(std::move(cols)) {}
+        Table(std::vector<IntColumn>&& cols);
         int rows() const;
         void insert_at(int col, int bucket, IntSlot&& val);
     private:

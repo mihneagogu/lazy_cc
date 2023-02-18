@@ -1,8 +1,9 @@
 #include "table.h"
+#include "types.h"
 
 namespace lazy {
 
-IntSlot IntSlot::sticky(Time t, Request::Tid tid) {
+IntSlot IntSlot::sticky(Time t, Tid tid) {
     return IntSlot(-t, tid);
 }
 
@@ -43,5 +44,7 @@ void IntColumn::insert_at(int bucket, IntSlot&& val) {
 void Table::insert_at(int col, int bucket, IntSlot&& val) {
     cols_[col].insert_at(bucket, std::move(val));
 }
+
+Table::Table(std::vector<IntColumn>&& cols): cols_(std::move(cols)) {}
 
 } // namespace lazy

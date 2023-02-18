@@ -20,7 +20,7 @@ namespace lazy {
     return op_.write_.slot_;
   }
 
-  Request::Tid Request::request_cnt = 0;
+  Tid Request::request_cnt = 0;
 
   void Request::insert_sticky(int slot) {
     Globals::table_->insert_at(0, slot, IntSlot::sticky(epoch_, tid_));

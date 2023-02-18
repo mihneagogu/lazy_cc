@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 
 #include "lazy_engine.h"
 #include "types.h"
@@ -85,6 +86,10 @@ namespace lazy {
       std::vector<int> write_set_; // slots, but at what time?
       Tid tid_; // slots, but at what time?
       Time epoch_; // slots, but at what time?
+
+      // Lock for the corresponding tx. In the initial implementation, only
+      // 1 thread is a allowed to substantiate this transaction at a time.
+      std::mutex tx_lock_;
   };
 
 } // namespace lazy
