@@ -26,7 +26,21 @@ namespace lazy {
     Globals::table_->insert_at(0, slot, IntSlot::sticky(epoch_, tid_));
   }
 
+    void Request::set_request_time() {
+        tid_ = ++request_cnt;
+        epoch_ = Globals::clock_.advance();
+    }
+
   void Request::stickify() {
+    if (rw_known_in_advance_) {
+      for (int slot : write_set_) {
+        insert_sticky(slot);
+      }
+      return;
+    }
+
+    // If rw sets are not known in advance compute 
+    // the required slots via interpreting the pseudo-instructions
     for (const auto& op : operations_) {
       if (op.is_read()) {
         read_set_.push_back(op.read_slot());
@@ -37,5 +51,10 @@ namespace lazy {
       }
     }
   }
+
+
+    void Request::substantiate() {
+
+    }
 } // namespace lazy
 

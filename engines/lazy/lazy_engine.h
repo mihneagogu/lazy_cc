@@ -62,11 +62,6 @@ while it's not being substantiated)
 */
 
 /*
-  TODO: Exemplify lazy transaction layout in memory and how it works exactly
-  in terms of code (X)
-  TODO: Create dependency graph when stickifying
-  TODO: Ask about SQL interpretation, how we should do it, how it's usually done?
-
    To actually store an array of transcations probably need type erasure 
     or clasic c-style function pointers
   void transaction1(Database& db) {

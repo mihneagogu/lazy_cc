@@ -7,8 +7,8 @@
 
 namespace lazy {
 
-  // typedef int (*TransactionComputation)(Table&);
-  using Computation = int;
+  class Table;
+    using Computation = int (*)(Table*);
 
   enum OperationTy {
     READ, WRITE, BIN_MUL, BIN_ADD, CONSTANT
@@ -54,31 +54,37 @@ namespace lazy {
 
       // SUG: Heuristic for how many slots would be a read or write so we can
       // pre-allocate
-      Request(std::vector<Operation>&& ops): operations_(std::move(ops)) {
-        tid_ = ++request_cnt;
-        epoch_ = Globals::clock_.advance();
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops): is_tx_(is_tx), operations_(std::move(ops)),  fp_(code), rw_known_in_advance_(false) {
+        set_request_time();
       }
 
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops, std::vector<int>&& write_set, std::vector<int>&& read_set): is_tx_(is_tx), operations_(std::move(ops)), fp_(code), rw_known_in_advance_(true), read_set_(std::move(read_set)) , write_set_(std::move(write_set)) {
+      set_request_time();
+    }
 
       /* Read the operations and decide the read-set and write-set of a transaction */
       void stickify();
-      /* Simply execute the code of the transaction */
       void substantiate();
 
     private:
       void insert_sticky(int slot);
+      void set_request_time();
 
       static Tid request_cnt;
 
-      // sorted in prefix notation to avoid recursive types
+      // Transaction, or just normal request?
+      bool is_tx_; 
+    // sorted in prefix notation to avoid recursive types
       // how about recursive type with allocated arena?
       std::vector<Operation> operations_;
       Computation fp_;
+      // For testing purposes assume the r/w sets have been determined
+      // without the overhead of interpretation
+      bool rw_known_in_advance_;
       std::vector<int> read_set_; // slots, but at what time?
       std::vector<int> write_set_; // slots, but at what time?
       Tid tid_; // slots, but at what time?
       Time epoch_; // slots, but at what time?
-      bool is_trans_ = false;
   };
 
 } // namespace lazy

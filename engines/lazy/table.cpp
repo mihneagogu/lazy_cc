@@ -26,9 +26,9 @@ void IntColumn::insert_at(int bucket, IntSlot&& val) {
     auto end = it + constants::TIMESTAMPS_PER_TUPLE;
     bool found_free = false;
     for (; it < end; it++) {
+        // TODO: use occupied counter
         if (data_[it].is_invalid()) {
-            // TODO: Replacement of value
-            // found a free slot
+            // TODO: Eviction policy?
             data_[it] = std::move(val);
             found_free = true;
             break;
