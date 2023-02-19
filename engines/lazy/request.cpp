@@ -2,6 +2,8 @@
 #include "table.h"
 #include "lazy_engine.h"
 
+using std::memory_order;
+
 namespace lazy {
 
   bool Operation::is_read() const {
@@ -24,6 +26,7 @@ namespace lazy {
 
   void Request::insert_sticky(int slot) {
     Globals::table_->insert_at(0, slot, IntSlot::sticky(epoch_, tid_));
+    Globals::dep_.sticky_written(tid_, slot);
   }
 
     void Request::set_request_time() {
@@ -36,6 +39,7 @@ namespace lazy {
       for (int slot : write_set_) {
         insert_sticky(slot);
       }
+      Globals::dep_.check_dependencies(tid_, read_set_);
       return;
     }
 
@@ -50,11 +54,21 @@ namespace lazy {
         insert_sticky(slot);
       }
     }
+    Globals::dep_.check_dependencies(tid_, read_set_);
   }
 
+  void Request::substantiate() {
+    // TODO
 
-    void Request::substantiate() {
+    // SUG: Should be able to use relaxed here, or at least
+    // release?
+    computation_performed_.store(true, std::memory_order_seq_cst);
+  }
 
-    }
+  bool Request::was_performed() const {
+    // SUG: Should be able to use relaxed here, or at least
+    // release?
+    return computation_performed_.load(std::memory_order_seq_cst);
+  }
 } // namespace lazy
 

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 #include "lazy_engine.h"
 #include "types.h"
@@ -66,6 +67,7 @@ namespace lazy {
       /* Read the operations and decide the read-set and write-set of a transaction */
       void stickify();
       void substantiate();
+      bool was_performed() const;
 
     private:
       void insert_sticky(int slot);
@@ -84,12 +86,13 @@ namespace lazy {
       bool rw_known_in_advance_;
       std::vector<int> read_set_; // slots, but at what time?
       std::vector<int> write_set_; // slots, but at what time?
-      Tid tid_; // slots, but at what time?
-      Time epoch_; // slots, but at what time?
+      Tid tid_; // This request's id
+      Time epoch_; // commit & execution time of the transaction
 
-      // Lock for the corresponding tx. In the initial implementation, only
-      // 1 thread is a allowed to substantiate this transaction at a time.
+      // Lock for the actualy computation execution of the transaction. 
+      // Acquired when a transaction is substantiated
       std::mutex tx_lock_;
+      std::atomic<bool> computation_performed_;
   };
 
 } // namespace lazy

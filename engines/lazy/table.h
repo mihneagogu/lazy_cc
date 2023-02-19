@@ -49,6 +49,7 @@ namespace lazy {
       std::vector<IntSlot> data_;
   };
 
+
   class Table {
     public:
         Table() = default;

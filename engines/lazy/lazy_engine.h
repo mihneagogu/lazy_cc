@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "types.h"
+#include "dependency.h"
 
 
 namespace lazy {
@@ -35,6 +36,7 @@ namespace lazy {
       // SUG: folly::Singleton ?
       static Clock clock_;
       static Table* table_;
+      static DependencyGraph dep_;
       static void shutdown();
   };
 
