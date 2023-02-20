@@ -58,10 +58,21 @@ namespace lazy {
   }
 
   void Request::substantiate() {
-    // TODO
+    if (was_performed()) {
+      // Someone else already executed this transaction!
+      return;
+    }
+    // SUG: Use trylock and do something useful if someone is executing this?
+    std::scoped_lock<std::mutex> execute(tx_lock_);
+    if (was_performed()) {
+      // Maybe someone else executed it while we were trying to acquire the lock
+      // in which case we don't need to reexecute the code
+      return;
+    }
+    
+    // We are the only thread which can perform the computation. Do it now
+    fp_(Globals::table_);
 
-    // SUG: Should be able to use relaxed here, or at least
-    // release?
     computation_performed_.store(true, std::memory_order_seq_cst);
   }
 

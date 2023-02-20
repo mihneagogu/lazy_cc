@@ -2,6 +2,8 @@
 
 #include <string>
 #include <stdexcept>
+#include <atomic>
+#include <cstdint>
 
 #include "lazy_engine.h"
 #include "request.h"
@@ -14,6 +16,8 @@ namespace lazy {
     otherwise represents (-time of sticky insertion, transaction id)
   */
   struct IntSlot {
+    static_assert(sizeof(int) == 4, "Assuming that the size of an int is 4");
+
     IntSlot(Time time, int value): t_(time), val_(value) {}
     IntSlot(): t_(constants::T_INVALID) {}
     static IntSlot sticky(Time t, Tid tid);
@@ -21,8 +25,8 @@ namespace lazy {
     Time t_;
     int val_;
     bool is_invalid() const;
-    // bool is_sticky() const;
-    // int get_transaction_id() const;
+    bool is_sticky() const;
+    int get_transaction_id() const;
   };
 
   class IntColumn {
@@ -34,7 +38,8 @@ namespace lazy {
       static IntColumn from_raw(int ntuples, int* data);
 
       void insert_at(int bucket, IntSlot&& val);
-    private:
+
+      std::atomic<Time> last_substantiation_;
 
       // What is the logical capacity of records of this
       int ntuples_;
@@ -56,8 +61,16 @@ namespace lazy {
         Table(std::vector<IntColumn>&& cols);
         int rows() const;
         void insert_at(int col, int bucket, IntSlot&& val);
+        
+        int safe_read_int(int slot, int col, Time t);
+        void safe_write_int(int slot, int col, int val, Time t);
+
+        int raw_read_int(int slot, int col, Time t, Tid as);
+        void raw_write_int(int slot, int col, int val, Time t, Tid as);
     private:
       std::vector<IntColumn> cols_;
+      // SUG: Move this and IntColumn into the same allocation
+      std::vector<std::atomic<Time>> last_substantiations_;
   };
 
 } // namespace lazy
