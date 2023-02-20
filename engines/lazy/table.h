@@ -29,12 +29,11 @@ namespace lazy {
     int get_transaction_id() const;
   };
 
+  using Entry = std::atomic<int64_t>;
+
   class IntColumn {
     public:
-      IntColumn(int ntuples): ntuples_(ntuples) {
-        data_.reserve(constants::TIMESTAMPS_PER_TUPLE * ntuples);
-      }
-      IntColumn(std::vector<int> data);
+      IntColumn(std::vector<int>&& data);
       static IntColumn from_raw(int ntuples, int* data);
 
       void insert_at(int bucket, IntSlot&& val);
@@ -51,7 +50,7 @@ namespace lazy {
       int actual_size_; 
       
       // Worth using manual allocation to avoid default ctor being called everywhere?
-      std::vector<IntSlot> data_;
+      std::vector<Entry> data_;
   };
 
 

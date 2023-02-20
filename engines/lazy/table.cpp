@@ -1,5 +1,6 @@
 #include "table.h"
 #include "types.h"
+#include <atomic>
 
 namespace lazy {
 
@@ -13,10 +14,12 @@ bool IntSlot::is_invalid() const {
     return t_ == constants::T_INVALID;
 }
 
-IntColumn::IntColumn(std::vector<int> data) {
-  data_.resize(data.size() * constants::TIMESTAMPS_PER_TUPLE);
-  for (std::vector<int>::size_type i = 0; i < data.size(); i++) {
-    data_[constants::TIMESTAMPS_PER_TUPLE * i] = IntSlot(constants::T0, data[i]);
+
+IntColumn::IntColumn(std::vector<int>&& data) {
+  data_ = std::vector<Entry>(data.size() * constants::TIMESTAMPS_PER_TUPLE);
+  for (std::vector<Entry>::size_type i = 0; i < data.size(); i++) {
+    int64_t e = constants::T0 << 31 | data[i];
+    data_[constants::TIMESTAMPS_PER_TUPLE * i].store(e, std::memory_order_seq_cst);
   }
 }
 
@@ -30,9 +33,13 @@ void IntColumn::insert_at(int bucket, IntSlot&& val) {
     bool found_free = false;
     for (; it < end; it++) {
         // TODO: use occupied counter
-        if (data_[it].is_invalid()) {
+        int64_t entry = data_[it].load(std::memory_order_seq_cst);
+        int64_t invalid_mask = static_cast<int64_t>(constants::T_INVALID) << 31;
+        int64_t time = invalid_mask & entry;
+        int64_t new_entry = (static_cast<int64_t>(val.t_) << 31) | val.val_;
+        if (time == invalid_mask) {
             // TODO: Eviction policy?
-            data_[it] = std::move(val);
+            data_[it].store(new_entry, std::memory_order_seq_cst);
             found_free = true;
             break;
         }
@@ -52,7 +59,7 @@ void Table::insert_at(int col, int bucket, IntSlot&& val) {
 }
 
 inline int Table::safe_read_int(int slot, int col, Time t) {
-    auto& pos = cols_[col].data_[slot * constants::TIMESTAMPS_PER_TUPLE];
+    std::atomic<int64_t>& pos = cols_[col].data_[slot * constants::TIMESTAMPS_PER_TUPLE];
     
     // SUG: Different memory ordering
     Time last_write = last_substantiations_[slot].load(std::memory_order_seq_cst);

@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <vector>
+#include <cstdint>
 
 #include "types.h"
 #include "dependency.h"
@@ -12,7 +13,7 @@ namespace lazy {
   class Table;
 
   namespace constants {
-    static constexpr Time T0 = 1;
+    static constexpr int64_t T0 = 1;
     static constexpr Time T_INVALID = std::numeric_limits<int>::max();
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
   } // namespace constants
