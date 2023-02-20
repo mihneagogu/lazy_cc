@@ -7,9 +7,20 @@ bool LastWrite::was_written() const {
   return tx_ != LastWrite::NO_TX;
 }
 
+std::vector<Request*> DependencyGraph::get_dependencies(Tid of) {
+  std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
+  return dependencies_[of];
+}
+
+Request* DependencyGraph::tx_of(Tid tid) {
+  std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
+  return txs_[tid];
+}
+
 void DependencyGraph::add_dep(Tid tx, Tid on) {
   dependencies_[tx].push_back(txs_[on]);
 }
+
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
   // A transaction T1 depends on another, T2, if

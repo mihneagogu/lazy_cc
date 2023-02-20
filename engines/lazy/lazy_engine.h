@@ -14,7 +14,7 @@ namespace lazy {
 
   namespace constants {
     static constexpr int64_t T0 = 1;
-    static constexpr Time T_INVALID = std::numeric_limits<int>::max();
+    static constexpr int64_t T_INVALID = std::numeric_limits<int>::max();
     static constexpr int TIMESTAMPS_PER_TUPLE = 5;
   } // namespace constants
 

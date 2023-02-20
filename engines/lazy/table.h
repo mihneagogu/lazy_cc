@@ -29,6 +29,7 @@ namespace lazy {
     int get_transaction_id() const;
   };
 
+  // TODO: Make separate class
   using Entry = std::atomic<int64_t>;
 
   class IntColumn {

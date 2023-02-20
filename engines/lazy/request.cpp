@@ -69,6 +69,12 @@ namespace lazy {
       // in which case we don't need to reexecute the code
       return;
     }
+
+    // Substantiate all the transactions that this trans depends on
+    auto deps = Globals::dep_.get_dependencies(tid_);
+    for (auto* tx : deps) {
+      tx->substantiate();
+    }
     
     // We are the only thread which can perform the computation. Do it now
     fp_(Globals::table_);

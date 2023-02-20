@@ -24,16 +24,19 @@ struct LastWrite {
 class DependencyGraph {
   public:
     DependencyGraph() = default;
-    void add_dep(Tid tx, Tid on);
     /* Must be called without holding the lock. Will acquire a shared lock
      * and upgrade to exclusive in  case there is indeed a dependency */
     void check_dependencies(Tid tx, const std::vector<int>& read_set);
+    std::vector<Request*> get_dependencies(Tid of);
+    Request* tx_of(Tid tid);
+
     void sticky_written(Tid tx, int slot);
-    /* Must be called while holding the lock in (at least) shared mode */
-    std::shared_mutex global_lock_;
+
+    mutable std::shared_mutex global_lock_;
     std::unordered_map<Tid, std::vector<Request*>> dependencies_;
     std::unordered_map<Tid, Request*> txs_;
   private:
+    void add_dep(Tid tx, Tid on);
     std::vector<LastWrite> last_writes_;
 };
 
