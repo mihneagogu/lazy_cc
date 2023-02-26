@@ -80,6 +80,7 @@ namespace lazy {
     // sorted in prefix notation to avoid recursive types
       // how about recursive type with allocated arena?
       std::vector<Operation> operations_;
+
       Computation fp_;
       // For testing purposes assume the r/w sets have been determined
       // without the overhead of interpretation

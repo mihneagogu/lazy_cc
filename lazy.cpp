@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include "lazy.h"
 
@@ -7,6 +8,12 @@ namespace lazy {
 void run() {
   std::cout << "Hello Lazy BOSS!" << std::endl;
   lazy::Globals::shutdown();
+
+  /* 
+   * start a sticky thread, and 8 worker threads,
+   * start them all with a request queue
+   * let them run
+  */
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,
