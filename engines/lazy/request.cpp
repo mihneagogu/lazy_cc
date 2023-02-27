@@ -48,6 +48,7 @@ namespace lazy {
         insert_sticky(slot);
       }
       Globals::dep_.check_dependencies(tid_, read_set_);
+      stickified_.store(true, std::memory_order_seq_cst);
       return;
     }
 

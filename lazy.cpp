@@ -3,19 +3,30 @@
 #include <thread>
 #include <random>
 #include <memory>
+#include <utility>
+#include <atomic>
 
 #include "lazy.h"
 
 namespace lazy {
 
+// TODO: For the substantiate function, actually move part of the code
+// into ExecutorWorker class, so that it can keep track of the queue of requests
+// to serve, and have it work as a circular queue in the case that it was asked
+// to substantiate a request which has not yet been stickified.
+
 constexpr int nslots = 107374182;
 
-void sticky_fn() {
-
+void sticky_fn(std::vector<Request*>& reqs) {
+  for (auto* req : reqs) {
+    req->stickify();
+  }
 }
 
-void subst_fn(std::vector<Request> txs) {
-
+void substantiate(std::vector<Request*>& reqs) {
+  for (auto* req : reqs) {
+    req->substantiate();
+  }
 }
 
 int mock_computation(Request* self, Table* tb, int w1, int w2, int w3) {
@@ -58,11 +69,15 @@ void run() {
   // this is around 4GB of memory occupied by the table
   std::vector<int> tasks;
   std::vector<std::vector<Request*>> txs(4);
+  std::vector<Request*> to_stickify;
+  to_stickify.reserve(mili);
 
   for (int i = 0; i < subst_cores; i++) {
     txs[i].reserve(mili / subst_cores);
     for (int j = 0; j < mili / subst_cores; j++) {
-      txs[i].emplace_back(mock_tx(gen));
+      auto* req = mock_tx(gen);
+      txs[i].emplace_back(req);
+      to_stickify.emplace_back(req);
     }
   }
   
@@ -73,9 +88,9 @@ void run() {
 
   std::vector<std::thread> ts;
   for (int i = 0; i < 4; i++) {
-    // ts.push_back(std::thread(subst_fn, std::move(txs[i])));
+    ts.emplace_back(substantiate, std::ref(txs[i]));
   }
-  sticky_fn();
+  sticky_fn(to_stickify);
   for (auto& t : ts) {
     t.join();
   }
