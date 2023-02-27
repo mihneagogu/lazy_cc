@@ -1,55 +1,74 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <random>
+#include <memory>
 
 #include "lazy.h"
 
 namespace lazy {
 
+constexpr int nslots = 107374182;
+
 void sticky_fn() {
 
 }
 
-void subst_fn() {
+void subst_fn(std::vector<Request> txs) {
 
 }
 
-int mock_tx(Request* self, Table* tb, int w1, int w2, int w3) {
+int mock_computation(Request* self, Table* tb, int w1, int w2, int w3) {
   Time tx_t = self->time();
   Tid tid = self->tx_id();
 
+  // Read 
   int r1 = tb->safe_read_int(w1, 0, self->time());
   tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
   int r2 = tb->safe_read_int(w2, 0, self->time());
   tb->raw_write_int(w2, 0, r2 + 2, tx_t, tid);
   int r3 = tb->safe_read_int(w3, 0, self->time());
   tb->raw_write_int(w3, 0, r3 + 3, tx_t, tid);
+
+  return 3;
 }
 
-
+Request* mock_tx(std::mt19937& gen) {
+  std::uniform_int_distribution<int> dis(1, nslots);  // define the distribution
+  std::vector<int> ws{dis(gen), dis(gen), dis(gen)};
+  std::vector<int> rs = ws;
+  return new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+}
 
 // each transaction writes 3 ints
 
 void run() {
-  std::cout << "Hello Lazy BOSS!" << std::endl;
+  constexpr int mili = 1000000;
+  constexpr int subst_cores = 4;
+  std::random_device rd;  
+  std::mt19937 gen(rd());  
 
-  auto _r = lazy::Globals::clock_.time();
-  auto _fp = mock_tx;
-
-  const int nslots = 107374182;
   // 100M slots of ints, so 500M ints, which is 2GB,
   // and assuming each slot has 2 ints (1 for the value 1 for the slot)
   // this is around 4GB of memory occupied by the table
-  std::vector<int> data(nslots, 0);
   std::vector<int> tasks;
-  
-  for (int i = 0; i < nslots; i++) {
-    data[i] = i + 1;
+  std::vector<std::vector<Request*>> txs(4);
+
+  for (int i = 0; i < subst_cores; i++) {
+    txs[i].reserve(mili / subst_cores);
+    for (int j = 0; j < mili / subst_cores; j++) {
+      txs[i].emplace_back(mock_tx(gen));
+    }
   }
+  
+  std::vector<int> data(nslots, 1);
+  auto* cols = new std::vector<IntColumn>;
+  cols->emplace_back(std::move(data));
+  Globals::table_ = new Table(cols);
 
   std::vector<std::thread> ts;
   for (int i = 0; i < 4; i++) {
-    ts.emplace_back(subst_fn);
+    // ts.push_back(std::thread(subst_fn, std::move(txs[i])));
   }
   sticky_fn();
   for (auto& t : ts) {

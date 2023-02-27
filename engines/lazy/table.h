@@ -80,7 +80,7 @@ namespace lazy {
   class Table {
     public:
         Table() = default;
-        Table(std::vector<IntColumn>&& cols);
+        Table(std::vector<IntColumn>* cols);
         int rows() const;
         void insert_at(int col, int bucket, IntSlot&& val);
         
@@ -91,8 +91,10 @@ namespace lazy {
         // TODO: when calling raw_write_int also increment the last_substantiations_
         void raw_write_int(int slot, int col, int val, Time t, Tid as);
         void enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set);
+
+      ~Table();
     private:
-      std::vector<IntColumn> cols_;
+      std::vector<IntColumn>* cols_;
 
       // SUG: Move this and IntColumn into the same allocation
       // The value in last_substantiations guarantees that the last substantiation
@@ -105,6 +107,8 @@ namespace lazy {
       //
       // This is a best-effort construct
       std::vector<std::atomic<Time>> last_substantiations_;
+
+      // TODO free cols
   };
 
 } // namespace lazy

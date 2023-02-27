@@ -98,12 +98,12 @@ void IntColumn::insert_at(int bucket, IntSlot&& val) {
     }
 }
 
-Table::Table(std::vector<IntColumn>&& cols): cols_(std::move(cols)) {
-    last_substantiations_ = std::vector<std::atomic<Time>>(cols.size());
+Table::Table(std::vector<IntColumn>* cols): cols_(cols) {
+    last_substantiations_ = std::vector<std::atomic<Time>>(cols->size());
 }
 
 void Table::insert_at(int col, int bucket, IntSlot&& val) {
-    cols_[col].insert_at(bucket, std::move(val));
+    (*cols_)[col].insert_at(bucket, std::move(val));
 }
 
 int Table::safe_read_int(int slot, int col, Time t) {
@@ -112,7 +112,7 @@ int Table::safe_read_int(int slot, int col, Time t) {
     // then gets the occupied counter, then tries to safe read the value at that counter.
 
 
-    auto& column = cols_[col].data_;
+    auto& column = (*cols_)[col].data_;
     
     auto it = slot * constants::TIMESTAMPS_PER_TUPLE;
     auto end = it + constants::TIMESTAMPS_PER_TUPLE;
@@ -170,9 +170,15 @@ void Table::enforce_wirte_set_substantiation(Time new_time, const std::vector<in
     Time before = last_substantiations_[slot].load(std::memory_order_seq_cst);
     Time best_time = std::max(before, new_time);
     // Note, this is a best-effort approach. We try our best to put the max slot in, but it's possible that a third thread performs this operation before our load and cas, therefore making the cas fail. We could ensure the highest slot by doing a CAS loop, however. last_substantiations is used as a heuristic, nonetheless, so it seems unnecessary
-    bool _succ = last_substantiations_[slot].compare_exchange_strong(before, best_time, std::memory_order_seq_cst);
+    /* bool _succ = */ last_substantiations_[slot].compare_exchange_strong(before, best_time, std::memory_order_seq_cst);
   }
 
+}
+
+Table::~Table() {
+  if (cols_) {
+    delete cols_;
+  }
 }
 
 } // namespace lazy
