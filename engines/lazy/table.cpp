@@ -106,7 +106,7 @@ void Table::insert_at(int col, int bucket, IntSlot&& val) {
     cols_[col].insert_at(bucket, std::move(val));
 }
 
-inline int Table::safe_read_int(int slot, int col, Time t) {
+int Table::safe_read_int(int slot, int col, Time t) {
     // ------------------------------
     // When a client requests a read then it finds the latest version of a value,
     // then gets the occupied counter, then tries to safe read the value at that counter.
@@ -158,6 +158,21 @@ inline int Table::safe_read_int(int slot, int col, Time t) {
     auto* tx = Globals::dep_.tx_of(tx_id);
     tx->substantiate();
     return column[found_idx].get_value(std::memory_order_seq_cst);
+}
+
+void Table::raw_write_int(int slot, int col, int val, Time t, Tid as) {
+
+}
+
+
+void Table::enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set) {
+  for (auto slot : write_set) {
+    Time before = last_substantiations_[slot].load(std::memory_order_seq_cst);
+    Time best_time = std::max(before, new_time);
+    // Note, this is a best-effort approach. We try our best to put the max slot in, but it's possible that a third thread performs this operation before our load and cas, therefore making the cas fail. We could ensure the highest slot by doing a CAS loop, however. last_substantiations is used as a heuristic, nonetheless, so it seems unnecessary
+    bool _succ = last_substantiations_[slot].compare_exchange_strong(before, best_time, std::memory_order_seq_cst);
+  }
+
 }
 
 } // namespace lazy

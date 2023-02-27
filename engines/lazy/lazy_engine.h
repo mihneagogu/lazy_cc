@@ -3,6 +3,7 @@
 #include <limits>
 #include <vector>
 #include <cstdint>
+#include <atomic>
 
 #include "types.h"
 #include "dependency.h"
@@ -27,7 +28,7 @@ namespace lazy {
     private:
       // SUG: Use something which doesn't hammer this variable in a concurrent
       // context?
-      int current_time_; 
+    std::atomic<Time> current_time_; 
   };
 
   static Clock clock;

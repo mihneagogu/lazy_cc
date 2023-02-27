@@ -90,6 +90,7 @@ namespace lazy {
         int raw_read_int(int slot, int col, Time t, Tid as);
         // TODO: when calling raw_write_int also increment the last_substantiations_
         void raw_write_int(int slot, int col, int val, Time t, Tid as);
+        void enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set);
     private:
       std::vector<IntColumn> cols_;
 

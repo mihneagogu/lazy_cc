@@ -9,8 +9,9 @@
 
 namespace lazy {
 
+  class Request;
   class Table;
-    using Computation = int (*)(Table*);
+    using Computation = int (*)(Request*, Table*, int /* write_1*/, int /* write_2 */, int /* write 3 */);
 
   enum OperationTy {
     READ, WRITE, BIN_MUL, BIN_ADD, CONSTANT
@@ -49,6 +50,7 @@ namespace lazy {
   };
 
 
+
   class Request {
     public:
       using Tid = int;
@@ -68,8 +70,20 @@ namespace lazy {
       void stickify();
       void substantiate();
       bool was_performed() const;
+      Time time() const;
+      Tid tx_id() const;
+
+      void set_write_to(int slot1, int slot2, int slot3) {
+        write1 = slot1; 
+        write2 = slot2; 
+        write3 = slot3; 
+      }
 
     private:
+      int write1;
+      int write2;
+      int write3;
+
       void insert_sticky(int slot);
       void set_request_time();
 

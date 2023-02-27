@@ -1,19 +1,62 @@
 #include <iostream>
+#include <vector>
 #include <thread>
 
 #include "lazy.h"
 
 namespace lazy {
 
+void sticky_fn() {
+
+}
+
+void subst_fn() {
+
+}
+
+int mock_tx(Request* self, Table* tb, int w1, int w2, int w3) {
+  Time tx_t = self->time();
+  Tid tid = self->tx_id();
+
+  int r1 = tb->safe_read_int(w1, 0, self->time());
+  tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
+  int r2 = tb->safe_read_int(w2, 0, self->time());
+  tb->raw_write_int(w2, 0, r2 + 2, tx_t, tid);
+  int r3 = tb->safe_read_int(w3, 0, self->time());
+  tb->raw_write_int(w3, 0, r3 + 3, tx_t, tid);
+}
+
+
+
+// each transaction writes 3 ints
+
 void run() {
   std::cout << "Hello Lazy BOSS!" << std::endl;
-  lazy::Globals::shutdown();
 
-  /* 
-   * start a sticky thread, and 8 worker threads,
-   * start them all with a request queue
-   * let them run
-  */
+  auto _r = lazy::Globals::clock_.time();
+  auto _fp = mock_tx;
+
+  const int nslots = 107374182;
+  // 100M slots of ints, so 500M ints, which is 2GB,
+  // and assuming each slot has 2 ints (1 for the value 1 for the slot)
+  // this is around 4GB of memory occupied by the table
+  std::vector<int> data(nslots, 0);
+  std::vector<int> tasks;
+  
+  for (int i = 0; i < nslots; i++) {
+    data[i] = i + 1;
+  }
+
+  std::vector<std::thread> ts;
+  for (int i = 0; i < 4; i++) {
+    ts.emplace_back(subst_fn);
+  }
+  sticky_fn();
+  for (auto& t : ts) {
+    t.join();
+  }
+
+  lazy::Globals::shutdown();
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,

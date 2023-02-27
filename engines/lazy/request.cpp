@@ -34,6 +34,14 @@ namespace lazy {
         epoch_ = Globals::clock_.advance();
     }
 
+  Time Request::time() const {
+    return epoch_;
+  }
+
+  Tid Request::tx_id() const {
+    return tid_;
+  }
+
   void Request::stickify() {
     if (rw_known_in_advance_) {
       for (int slot : write_set_) {
@@ -77,9 +85,10 @@ namespace lazy {
     }
     
     // We are the only thread which can perform the computation. Do it now
-    fp_(Globals::table_);
+    fp_(this, Globals::table_, 1, 1, 1);
 
     computation_performed_.store(true, std::memory_order_seq_cst);
+    Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
   }
 
   bool Request::was_performed() const {
@@ -87,5 +96,6 @@ namespace lazy {
     // release?
     return computation_performed_.load(std::memory_order_seq_cst);
   }
+
 } // namespace lazy
 
