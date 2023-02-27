@@ -74,15 +74,15 @@ namespace lazy {
       Tid tx_id() const;
 
       void set_write_to(int slot1, int slot2, int slot3) {
-        write1 = slot1; 
-        write2 = slot2; 
-        write3 = slot3; 
+        write1_ = slot1; 
+        write2_ = slot2; 
+        write3_ = slot3; 
       }
 
     private:
-      int write1;
-      int write2;
-      int write3;
+      int write1_;
+      int write2_;
+      int write3_;
 
       void insert_sticky(int slot);
       void set_request_time();

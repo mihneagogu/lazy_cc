@@ -85,7 +85,7 @@ namespace lazy {
     }
     
     // We are the only thread which can perform the computation. Do it now
-    fp_(this, Globals::table_, 1, 1, 1);
+    fp_(this, Globals::table_, write1_, write2_, write3_);
 
     computation_performed_.store(true, std::memory_order_seq_cst);
     Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);

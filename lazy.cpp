@@ -30,14 +30,19 @@ int mock_computation(Request* self, Table* tb, int w1, int w2, int w3) {
   int r3 = tb->safe_read_int(w3, 0, self->time());
   tb->raw_write_int(w3, 0, r3 + 3, tx_t, tid);
 
-  return 3;
+  return 3; // 3 writes
 }
 
 Request* mock_tx(std::mt19937& gen) {
   std::uniform_int_distribution<int> dis(1, nslots);  // define the distribution
-  std::vector<int> ws{dis(gen), dis(gen), dis(gen)};
+  int w1 = dis(gen);
+  int w2 = dis(gen);
+  int w3 = dis(gen);
+  std::vector<int> ws{w1, w2, w3};
   std::vector<int> rs = ws;
-  return new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+  auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+  req->set_write_to(w1, w2, w3);
+  return req;
 }
 
 // each transaction writes 3 ints

@@ -14,6 +14,8 @@ LINKS = -pthread
 
 all: build
 
+reset: clean lazy
+
 build:
 	$(CC) $(FLAGS) $(SRC) -o main $(LINKS)
 
