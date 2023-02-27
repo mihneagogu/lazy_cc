@@ -51,6 +51,10 @@ namespace lazy {
 
 
 
+	enum class SubstantiateResult {
+		SUCCESS, FAIL, STALLED
+	};
+
   class Request {
     public:
       using Tid = int;
@@ -68,7 +72,7 @@ namespace lazy {
 
       /* Read the operations and decide the read-set and write-set of a transaction */
       void stickify();
-      void substantiate();
+      SubstantiateResult substantiate();
       bool was_performed() const;
       Time time() const;
       Tid tx_id() const;

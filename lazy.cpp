@@ -7,6 +7,7 @@
 #include <atomic>
 
 #include "lazy.h"
+#include "engines/lazy/execution_worker.h"
 
 namespace lazy {
 
@@ -24,9 +25,8 @@ void sticky_fn(std::vector<Request*>& reqs) {
 }
 
 void substantiate(std::vector<Request*>& reqs) {
-  for (auto* req : reqs) {
-    req->substantiate();
-  }
+	auto worker = ExecutionWorker(reqs);
+	worker.run();
 }
 
 int mock_computation(Request* self, Table* tb, int w1, int w2, int w3) {

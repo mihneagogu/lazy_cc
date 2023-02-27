@@ -66,23 +66,28 @@ namespace lazy {
     Globals::dep_.check_dependencies(tid_, read_set_);
   }
 
-  void Request::substantiate() {
+  SubstantiateResult Request::substantiate() {
+		if (!stickified_.load(std::memory_order_seq_cst)) {
+			return SubstantiateResult::STALLED;
+		}
     if (was_performed()) {
       // Someone else already executed this transaction!
-      return;
+      return SubstantiateResult::SUCCESS;
     }
     // SUG: Use trylock and do something useful if someone is executing this?
     std::scoped_lock<std::mutex> execute(tx_lock_);
     if (was_performed()) {
       // Maybe someone else executed it while we were trying to acquire the lock
       // in which case we don't need to reexecute the code
-      return;
+      return SubstantiateResult::SUCCESS;
     }
 
     // Substantiate all the transactions that this trans depends on
     auto deps = Globals::dep_.get_dependencies(tid_);
     for (auto* tx : deps) {
-      tx->substantiate();
+      auto _res = tx->substantiate();
+			// The result here should never be stalled or failed,
+			// since the sticky thread itself made the dependency graph
     }
     
     // We are the only thread which can perform the computation. Do it now
@@ -90,6 +95,7 @@ namespace lazy {
 
     computation_performed_.store(true, std::memory_order_seq_cst);
     Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
+		return SubstantiateResult::STALLED;
   }
 
   bool Request::was_performed() const {
