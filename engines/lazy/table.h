@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <atomic>
 #include <cstdint>
+#include <list>
 
 #include "lazy_engine.h"
 #include "request.h"
@@ -21,7 +22,6 @@ namespace lazy {
     IntSlot(Time time, int value): t_(time), val_(value) {}
     IntSlot(): t_(constants::T_INVALID) {}
     static IntSlot sticky(Time t, Tid tid);
-
     Time t_;
     int val_;
     bool is_invalid() const;
@@ -76,7 +76,6 @@ namespace lazy {
       std::vector<Entry> data_;
   };
 
-
   class Table {
     public:
         Table() = default;
@@ -107,7 +106,6 @@ namespace lazy {
       //
       // This is a best-effort construct
       std::vector<std::atomic<Time>> last_substantiations_;
-
       // TODO free cols
   };
 

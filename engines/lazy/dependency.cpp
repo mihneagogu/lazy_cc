@@ -24,7 +24,7 @@ void DependencyGraph::add_dep(Tid tx, Tid on) {
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
   // A transaction T1 depends on another, T2, if
-  // T1 reads slot "x" and T2 is the last transactied to 
+  // T1 reads slot "x" and T2 is the last tx to 
   // have written a sticky to the given slot "x".
   std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
   std::defer_lock_t defer;
