@@ -62,6 +62,9 @@ Request* mock_tx(std::mt19937& gen) {
 void run() {
   constexpr int mili = 1000000;
   constexpr int subst_cores = 4;
+
+  constexpr int BENCHMARK_SIZE = mili;
+
   std::random_device rd;  
   std::mt19937 gen(rd());  
 
@@ -71,11 +74,11 @@ void run() {
   std::vector<int> tasks;
   std::vector<std::vector<Request*>> txs(4);
   std::vector<Request*> to_stickify;
-  to_stickify.reserve(mili);
+  to_stickify.reserve(BENCHMARK_SIZE);
 
   for (int i = 0; i < subst_cores; i++) {
-    txs[i].reserve(mili / subst_cores);
-    for (int j = 0; j < mili / subst_cores; j++) {
+    txs[i].reserve(BENCHMARK_SIZE / subst_cores);
+    for (int j = 0; j < BENCHMARK_SIZE / subst_cores; j++) {
       auto* req = mock_tx(gen);
       txs[i].emplace_back(req);
       to_stickify.emplace_back(req);

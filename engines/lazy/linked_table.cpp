@@ -104,7 +104,14 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
 }
 
 void LinkedTable::raw_write_int(int slot, int col, int val, Time t, Tid as) {
-
+    // When this is called, it is assumed that all the reads that the write depends on
+    // have been executed, as well as all other dependant transactions 
+    // (since the reads must have happened earlier to get the value, in which case
+    // they triggered a substification chain, or this was a blind write, in which
+    // case this does not matter)
+    auto& column = (*cols_)[col].data_;
+    auto& bucket = column[slot];
+    bucket.push(t, val);
 }
 
 
