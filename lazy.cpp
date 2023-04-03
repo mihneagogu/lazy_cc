@@ -8,6 +8,7 @@
 
 #include "lazy.h"
 #include "engines/lazy/execution_worker.h"
+#include "engines/lazy/linked_table.h"
 
 namespace lazy {
 
@@ -29,7 +30,7 @@ void substantiate(std::vector<Request*>& reqs) {
 	worker.run();
 }
 
-int mock_computation(Request* self, Table* tb, int w1, int w2, int w3) {
+int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   Time tx_t = self->time();
   Tid tid = self->tx_id();
 
@@ -82,9 +83,9 @@ void run() {
   }
   
   std::vector<int> data(nslots, 1);
-  auto* cols = new std::vector<IntColumn>;
+  auto* cols = new std::vector<LinkedIntColumn>;
   cols->emplace_back(std::move(data));
-  Globals::table_ = new Table(cols);
+  Globals::table_ = new LinkedTable(cols);
 
   std::vector<std::thread> ts;
   for (int i = 0; i < 4; i++) {

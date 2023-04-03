@@ -10,8 +10,8 @@
 namespace lazy {
 
   class Request;
-  class Table;
-    using Computation = int (*)(Request*, Table*, int /* write_1*/, int /* write_2 */, int /* write 3 */);
+  class LinkedTable;
+    using Computation = int (*)(Request*, LinkedTable*, int /* write_1*/, int /* write_2 */, int /* write 3 */);
 
   enum OperationTy {
     READ, WRITE, BIN_MUL, BIN_ADD, CONSTANT

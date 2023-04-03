@@ -1,5 +1,6 @@
 #include "request.h"
 #include "table.h"
+#include "linked_table.h"
 #include "lazy_engine.h"
 
 using std::memory_order;

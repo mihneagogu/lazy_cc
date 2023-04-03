@@ -11,7 +11,7 @@
 
 namespace lazy {
 
-  class Table;
+  class LinkedTable;
 
   namespace constants {
     static constexpr int64_t T0 = 1;
@@ -37,7 +37,7 @@ namespace lazy {
     public:
       // SUG: folly::Singleton ?
       static Clock clock_;
-      static Table* table_;
+      static LinkedTable* table_;
       static DependencyGraph dep_;
       static void shutdown();
   };
