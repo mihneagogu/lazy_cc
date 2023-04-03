@@ -5,9 +5,13 @@
 namespace lazy {
 
 LinkedIntColumn::LinkedIntColumn(std::vector<int>&& data) {
-  data_ = std::vector<std::list<Entry>>(data.size());
-  for (std::vector<std::list<Entry>>::size_type i = 0; i < data.size(); i++) {
-    data_[i].emplace_front(constants::T0, data[i]);
+  data_ = std::vector<Bucket>();
+  data_.reserve(data.size());
+  for (std::vector<Bucket>::size_type i = 0; i < data.size(); i++) {
+    // Only place where the move ctor should be called
+    // since emplace requires that the type is move-ctible
+    // in case of a reallocation due to a resize
+    data_.emplace_back(Bucket(constants::T0, data[i]));
   }
 }
 
@@ -23,11 +27,7 @@ void LinkedIntColumn::insert_at(int bucket, IntSlot&& val) {
     // with respect to the timestamp ordering, therefore the insertions need to
     // be synchronised.
 
-    locks_[bucket].lock();
-
-    data_[bucket].emplace_back(val.t_, val.val_);
-
-    locks_[bucket].unlock();
+    data_[bucket].push(val.t_, val.val_);
 }
 
 LinkedTable::LinkedTable(std::vector<LinkedIntColumn>* cols): cols_(cols) {
@@ -46,22 +46,23 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
 
     auto& column = (*cols_)[col].data_;
 
-    auto& lock = (*cols_)[col].locks_[slot];
-    lock.lock();
-    
     int64_t val;
     int64_t entry;
     int64_t entry_t;
     bool found = false;
 
-    for (auto& et : column[slot]) {
-        // SUG: Different memory ordering
-        entry = et.load(std::memory_order_seq_cst);
+    auto& bucket = column[slot];
+    auto& curr = bucket.head_;
+    Bucket::BucketNode* e = nullptr;
+    while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+        // If implemented as a linked list the entry need not be atomic actually...
+        entry = e->entry_.load(std::memory_order_seq_cst);
         if (Entry::has_time(entry, t)) {
             found = true;
             val = Entry::get_val(entry);
             break;
         }
+        curr = e->next_.load(std::memory_order_seq_cst);
     }
 
     // If for some reason the value was not found (i.e some thread was asked to 
@@ -69,7 +70,6 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // INT_MIN and log
     if (!found) {
       // TODO: log this somewhere (in an append-only log?)
-      lock.unlock();
       return std::numeric_limits<int>::min();
     }
 
@@ -83,25 +83,22 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     if (!Entry::is_sticky(entry) || (last_write >= t)) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
-        lock.unlock();
         return val;
     }
     assert(entry_t < 0); // Time 
     // Nobody has substantiated this sticky, so let's do it ourselves.
     Tid tx_id = val;
     auto* tx = Globals::dep_.tx_of(tx_id);
-    lock.unlock();
     tx->substantiate();
 
-    lock.lock();
-    for (auto& et : column[slot]) {
-        // SUG: Different memory ordering
-        entry = et.load(std::memory_order_seq_cst);
+    auto& curr_ = column[slot].head_;
+    while ((e = curr_.load(std::memory_order_seq_cst)) != nullptr) {
+        // If implemented as a linked list the entry need not be atomic actually...
+        entry = e->entry_.load(std::memory_order_seq_cst);
         if (Entry::has_time(entry, t)) {
-            val = Entry::get_val(entry);
-            lock.unlock();
-            return val;
+            return Entry::get_val(entry);
         }
+        curr_ = e->next_.load(std::memory_order_seq_cst);
     }
     throw std::runtime_error("unreachable");
 }

@@ -14,6 +14,50 @@
 
 namespace lazy {
 
+  struct Bucket {
+
+    struct BucketNode {
+      Entry entry_; 
+      std::atomic<BucketNode*> next_;
+      
+      BucketNode(Time t, int val): entry_(t, val), next_(nullptr) {}
+    };
+
+    Bucket(Time t, int val) {
+      auto* node = new BucketNode(t, val);
+      head_ = node;
+      tail_ = node;
+    }
+
+    Bucket() = delete;
+    Bucket(Bucket&& other) {
+      // TO NEVER BE USED OUTSIDE OF TABLE INITIALIZATION.
+      // in LinkedIntColumn::LinkedIntColumn(std::vector<int>&& data)
+      // Comment in constructor. Otherwise should NEVER be used
+      head_.store(other.head_.load());
+      tail_.store(other.tail_.load());
+      other.head_.store(nullptr);
+      other.tail_.store(nullptr);
+    }
+    Bucket(const Bucket& other) = delete;
+
+    std::atomic<BucketNode*> head_;
+    std::atomic<BucketNode*> tail_;
+
+    void push(Time t, int val) {
+      push(new BucketNode(t, val));
+    }
+    void push(BucketNode* e) {
+      auto prev_tail = tail_.load(std::memory_order_seq_cst);
+      while (!tail_.compare_exchange_strong(prev_tail, e, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
+        // Backoff?
+        // Relaxed loads to avoid contention?
+        prev_tail = tail_.load(std::memory_order_seq_cst);
+      }
+      prev_tail->next_.store(e, std::memory_order_seq_cst);
+    }
+  };
+
   class LinkedIntColumn {
     public:
       LinkedIntColumn(std::vector<int>&& data);
@@ -31,8 +75,7 @@ namespace lazy {
       int actual_size_; 
       
       // Worth using manual allocation to avoid default ctor being called everywhere?
-      std::vector<std::list<Entry>> data_;
-      std::vector<std::mutex> locks_;
+      std::vector<Bucket> data_;
   };
 
   class LinkedTable {
