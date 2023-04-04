@@ -17,7 +17,8 @@ namespace lazy {
 // to serve, and have it work as a circular queue in the case that it was asked
 // to substantiate a request which has not yet been stickified.
 
-constexpr int nslots = 107374182;
+// constexpr int nslots = 107374182;
+constexpr int nslots = 10000;
 
 void sticky_fn(std::vector<Request*>& reqs) {
   for (auto* req : reqs) {
@@ -38,9 +39,9 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   int r1 = tb->safe_read_int(w1, 0, self->time());
   tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
   int r2 = tb->safe_read_int(w2, 0, self->time());
-  tb->raw_write_int(w2, 0, r2 + 2, tx_t, tid);
+  tb->raw_write_int(w2, 0, r2 + 1, tx_t, tid);
   int r3 = tb->safe_read_int(w3, 0, self->time());
-  tb->raw_write_int(w3, 0, r3 + 3, tx_t, tid);
+  tb->raw_write_int(w3, 0, r3 + 1, tx_t, tid);
 
   return 3; // 3 writes
 }
@@ -63,7 +64,7 @@ void run() {
   constexpr int mili = 1000000;
   constexpr int subst_cores = 4;
 
-  constexpr int BENCHMARK_SIZE = mili;
+  constexpr int BENCHMARK_SIZE = 100;
 
   std::random_device rd;  
   std::mt19937 gen(rd());  
@@ -71,6 +72,7 @@ void run() {
   // 100M slots of ints, so 500M ints, which is 2GB,
   // and assuming each slot has 2 ints (1 for the value 1 for the slot)
   // this is around 4GB of memory occupied by the table
+
   std::vector<int> tasks;
   std::vector<std::vector<Request*>> txs(4);
   std::vector<Request*> to_stickify;
@@ -94,12 +96,12 @@ void run() {
   for (int i = 0; i < 4; i++) {
     ts.emplace_back(substantiate, std::ref(txs[i]));
   }
-  sticky_fn(to_stickify);
   for (auto& t : ts) {
     t.join();
   }
+  sticky_fn(to_stickify);
 
-  lazy::Globals::shutdown();
+  // lazy::Globals::shutdown();
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,
