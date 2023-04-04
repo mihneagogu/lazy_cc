@@ -1,5 +1,7 @@
 #include <mutex>
+
 #include "dependency.h"
+#include "logs.h"
 
 namespace lazy {
 
@@ -45,6 +47,7 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
 }
 
 void DependencyGraph::sticky_written(Tid tx, int slot) {
+  cout << "sticky written by tx " << tx << " at slot " << slot << endl;
   last_writes_[slot].tx_ = tx;
   last_writes_[slot].depth_++;
 }

@@ -7,6 +7,7 @@ LAZY = ./engines/lazy
 LAZY_SRC = $(wildcard $(LAZY)/*.cpp) lazy.cpp main.cpp
 INCL_LAZY = 
 ASAN = -fsanitize=address
+TSAN = -fsanitize=thread
 OPT_FLAGS = $(CC_VERSION) -g -Wall -O3
 LINKS = -pthread
 
@@ -26,7 +27,10 @@ lk:
 	$(CC) -E $(FLAGS) $(INCL_LAZY) $(LAZY_SRC) 
 
 lazy_asan:
-	$(CC) $(OPT_FLAGS) $(LAZY_SRC) $(ASAN) -o lazy_asan $(LINKS)
+	$(CC) $(INCL_LAZY) $(FLAGS) $(LAZY_SRC) $(ASAN) -o lazy_asan $(LINKS)
+
+lazy_tsan:
+	$(CC) $(INCL_LAZY) $(FLAGS) $(LAZY_SRC) $(TSAN) -o lazy_tsan $(LINKS)
 
 lazy_opt:
 	$(CC) $(OPT_FLAGS) $(LAZY_SRC) -o lazy $(LINKS)
@@ -34,4 +38,5 @@ lazy_opt:
 clean:
 	rm -f ./lazy
 	rm -f ./lazy_asan
+	rm -f ./lazy_tsan
 

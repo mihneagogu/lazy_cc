@@ -33,6 +33,7 @@ namespace lazy {
 
   static Clock clock;
 
+
   class Globals {
     public:
       // SUG: folly::Singleton ?
@@ -40,6 +41,9 @@ namespace lazy {
       static LinkedTable* table_;
       static DependencyGraph dep_;
       static void shutdown();
+
+      // Details of the experiment
+      static constexpr int n_slots = 100;
   };
 
   /*

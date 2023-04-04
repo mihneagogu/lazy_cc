@@ -10,6 +10,9 @@
 #include "engines/lazy/execution_worker.h"
 #include "engines/lazy/linked_table.h"
 
+using std::cout;
+using std::endl;
+
 namespace lazy {
 
 // TODO: For the substantiate function, actually move part of the code
@@ -17,12 +20,10 @@ namespace lazy {
 // to serve, and have it work as a circular queue in the case that it was asked
 // to substantiate a request which has not yet been stickified.
 
-// constexpr int nslots = 107374182;
-constexpr int nslots = 10000;
-
 void sticky_fn(std::vector<Request*>& reqs) {
   for (auto* req : reqs) {
     req->stickify();
+    cout << "sticky done" << endl;
   }
 }
 
@@ -47,10 +48,11 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
 }
 
 Request* mock_tx(std::mt19937& gen) {
-  std::uniform_int_distribution<int> dis(1, nslots);  // define the distribution
+  std::uniform_int_distribution<int> dis(1, Globals::n_slots);  // define the distribution
   int w1 = dis(gen);
   int w2 = dis(gen);
   int w3 = dis(gen);
+  cout << "w1 w2 w3 " << w1 << " " << w2 << " " << w3 << endl;
   std::vector<int> ws{w1, w2, w3};
   std::vector<int> rs = ws;
   auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
@@ -87,17 +89,17 @@ void run() {
     }
   }
   
-  std::vector<int> data(nslots, 1);
+  std::vector<int> data(Globals::n_slots, 1);
   auto* cols = new std::vector<LinkedIntColumn>;
   cols->emplace_back(std::move(data));
   Globals::table_ = new LinkedTable(cols);
 
   std::vector<std::thread> ts;
   for (int i = 0; i < 4; i++) {
-    ts.emplace_back(substantiate, std::ref(txs[i]));
+    // ts.emplace_back(substantiate, std::ref(txs[i]));
   }
   for (auto& t : ts) {
-    t.join();
+    // t.join();
   }
   sticky_fn(to_stickify);
 

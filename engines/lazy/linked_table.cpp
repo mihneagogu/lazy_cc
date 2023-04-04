@@ -1,4 +1,5 @@
 #include "linked_table.h"
+#include "logs.h"
 
 #include <cassert>
 
@@ -35,6 +36,7 @@ LinkedTable::LinkedTable(std::vector<LinkedIntColumn>* cols): cols_(cols) {
 }
 
 void LinkedTable::insert_at(int col, int bucket, IntSlot&& val) {
+    cout << "inserting at bucket " << bucket << " value " << val.t_ << " at time " << val.t_ << endl;
     (*cols_)[col].insert_at(bucket, std::move(val));
 }
 

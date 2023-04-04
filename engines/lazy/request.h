@@ -81,6 +81,7 @@ namespace lazy {
         write1_ = slot1; 
         write2_ = slot2; 
         write3_ = slot3; 
+        rw_known_in_advance_ = true;
       }
 
     private:
