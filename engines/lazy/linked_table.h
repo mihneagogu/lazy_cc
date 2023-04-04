@@ -21,6 +21,14 @@ namespace lazy {
       std::atomic<BucketNode*> next_;
       
       BucketNode(Time t, int val): entry_(t, val), next_(nullptr) {}
+
+      ~BucketNode() {
+        auto* next = next_.load();
+        if (next) {
+          delete next;
+        }
+      }
+
     };
 
     Bucket(Time t, int val) {
@@ -55,6 +63,13 @@ namespace lazy {
         prev_tail = tail_.load(std::memory_order_seq_cst);
       }
       prev_tail->next_.store(e, std::memory_order_seq_cst);
+    }
+
+    ~Bucket() {
+      auto* head = head_.load();
+      if (head) {
+        delete head;
+      }
     }
   };
 

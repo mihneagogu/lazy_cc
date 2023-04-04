@@ -25,6 +25,9 @@ void sticky_fn(std::vector<Request*>& reqs) {
     req->stickify();
     cout << "sticky done" << endl;
   }
+  for (auto* req : reqs) {
+    delete req;
+  }
 }
 
 void substantiate(std::vector<Request*>& reqs) {
@@ -101,7 +104,7 @@ void run() {
   }
   sticky_fn(to_stickify);
 
-  // lazy::Globals::shutdown();
+  lazy::Globals::shutdown();
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,
