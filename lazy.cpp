@@ -48,7 +48,7 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
 }
 
 Request* mock_tx(std::mt19937& gen) {
-  std::uniform_int_distribution<int> dis(1, Globals::n_slots);  // define the distribution
+  std::uniform_int_distribution<int> dis(1, Globals::n_slots - 1);  // define the distribution
   int w1 = dis(gen);
   int w2 = dis(gen);
   int w3 = dis(gen);
@@ -66,8 +66,6 @@ void run() {
   constexpr int mili = 1000000;
   constexpr int subst_cores = 4;
 
-  constexpr int BENCHMARK_SIZE = 100;
-
   std::random_device rd;  
   std::mt19937 gen(rd());  
 
@@ -78,11 +76,11 @@ void run() {
   std::vector<int> tasks;
   std::vector<std::vector<Request*>> txs(4);
   std::vector<Request*> to_stickify;
-  to_stickify.reserve(BENCHMARK_SIZE);
+  to_stickify.reserve(Globals::tx_count);
 
   for (int i = 0; i < subst_cores; i++) {
-    txs[i].reserve(BENCHMARK_SIZE / subst_cores);
-    for (int j = 0; j < BENCHMARK_SIZE / subst_cores; j++) {
+    txs[i].reserve(Globals::tx_count / subst_cores);
+    for (int j = 0; j < Globals::tx_count / subst_cores; j++) {
       auto* req = mock_tx(gen);
       txs[i].emplace_back(req);
       to_stickify.emplace_back(req);
@@ -90,7 +88,7 @@ void run() {
   }
   
   std::vector<int> data(Globals::n_slots, 1);
-  auto* cols = new std::vector<LinkedIntColumn>;
+  auto* cols = new std::vector<LinkedIntColumn>();
   cols->emplace_back(std::move(data));
   Globals::table_ = new LinkedTable(cols);
 
