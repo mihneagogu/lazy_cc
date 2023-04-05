@@ -2,6 +2,7 @@
 
 #include "dependency.h"
 #include "logs.h"
+#include "../utils.h"
 
 namespace lazy {
 
@@ -11,7 +12,14 @@ bool LastWrite::was_written() const {
 
 std::vector<Request*> DependencyGraph::get_dependencies(Tid of) {
   std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
-  return dependencies_[of];
+  auto deps = dependencies_.find(of);
+  if (deps == dependencies_.end()) {
+    cout << "deps of " << of << " empty" << endl;
+    return {};
+  }
+  cout << "deps of " << of << " non-empty with size " << deps->second.size() << endl;
+  utils::print(deps->second);
+  return deps->second;
 }
 
 Request* DependencyGraph::tx_of(Tid tid) {
@@ -34,6 +42,7 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
   bool has_dep = false;
   for (int slot : read_set) {
     const auto& prev = last_writes_[slot];
+    cout << "last write to slot performed by " << prev.tx_ << endl;
     if (prev.tx_ != LastWrite::NO_TX) {
       if (!has_dep) {
         // SUG: use upgradable locks from boost?
@@ -41,13 +50,14 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
         write.lock();
       }
       has_dep = true;
+      cout << tx << " depends on previous tx " << prev.tx_ << endl;
       add_dep(tx, prev.tx_);
     }
   }
 }
 
 void DependencyGraph::sticky_written(Tid tx, int slot) {
-  cout << "sticky written by tx " << tx << " at slot " << slot << endl;
+  // cout << "sticky written by tx " << tx << " at slot " << slot << endl;
   last_writes_[slot].tx_ = tx;
   last_writes_[slot].depth_++;
 }

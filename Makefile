@@ -15,6 +15,7 @@ LINKS = -pthread
 
 all: build
 
+
 reset: clean lazy
 
 build:
@@ -23,14 +24,13 @@ build:
 lazy:
 	$(CC) $(INCL_LAZY) $(FLAGS) $(LAZY_SRC) -o lazy $(LINKS)
 
-lk:
-	$(CC) -E $(FLAGS) $(INCL_LAZY) $(LAZY_SRC) 
-
 lazy_asan:
 	$(CC) $(INCL_LAZY) $(FLAGS) $(LAZY_SRC) $(ASAN) -o lazy_asan $(LINKS)
 
 lazy_tsan:
 	$(CC) $(INCL_LAZY) $(FLAGS) $(LAZY_SRC) $(TSAN) -o lazy_tsan $(LINKS)
+
+all_lazy: lazy lazy_asan lazy_tsan
 
 lazy_opt:
 	$(CC) $(OPT_FLAGS) $(LAZY_SRC) -o lazy $(LINKS)

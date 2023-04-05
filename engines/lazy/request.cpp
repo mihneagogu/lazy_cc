@@ -2,6 +2,7 @@
 #include "table.h"
 #include "linked_table.h"
 #include "lazy_engine.h"
+#include "logs.h"
 
 using std::memory_order;
 
@@ -45,10 +46,10 @@ namespace lazy {
 
   void Request::stickify() {
     if (rw_known_in_advance_) {
+      Globals::dep_.check_dependencies(tid_, read_set_);
       for (int slot : write_set_) {
         insert_sticky(slot);
       }
-      Globals::dep_.check_dependencies(tid_, read_set_);
       stickified_.store(true, std::memory_order_seq_cst);
       return;
     }
@@ -65,9 +66,11 @@ namespace lazy {
       }
     }
     Globals::dep_.check_dependencies(tid_, read_set_);
+    stickified_.store(true, std::memory_order_seq_cst);
   }
 
   SubstantiateResult Request::substantiate() {
+    cout << "this " << this << endl;
 		if (!stickified_.load(std::memory_order_seq_cst)) {
 			return SubstantiateResult::STALLED;
 		}

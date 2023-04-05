@@ -23,11 +23,8 @@ namespace lazy {
 void sticky_fn(std::vector<Request*>& reqs) {
   for (auto* req : reqs) {
     req->stickify();
-    cout << "sticky done" << endl;
   }
-  for (auto* req : reqs) {
-    delete req;
-  }
+  cout << "stickification performed" << endl;
 }
 
 void substantiate(std::vector<Request*>& reqs) {
@@ -55,7 +52,6 @@ Request* mock_tx(std::mt19937& gen) {
   int w1 = dis(gen);
   int w2 = dis(gen);
   int w3 = dis(gen);
-  cout << "w1 w2 w3 " << w1 << " " << w2 << " " << w3 << endl;
   std::vector<int> ws{w1, w2, w3};
   std::vector<int> rs = ws;
   auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
@@ -67,7 +63,7 @@ Request* mock_tx(std::mt19937& gen) {
 
 void run() {
   constexpr int mili = 1000000;
-  constexpr int subst_cores = 4;
+  constexpr int subst_cores = 2;
 
   std::random_device rd;  
   std::mt19937 gen(rd());  
@@ -82,9 +78,12 @@ void run() {
   to_stickify.reserve(Globals::tx_count);
 
   for (int i = 0; i < subst_cores; i++) {
+    cout << Globals::tx_count / subst_cores << " for each core " << endl;
     txs[i].reserve(Globals::tx_count / subst_cores);
     for (int j = 0; j < Globals::tx_count / subst_cores; j++) {
+      cout << "thread " << i << " tx #" << j;
       auto* req = mock_tx(gen);
+      cout << " " << req << endl;
       txs[i].emplace_back(req);
       to_stickify.emplace_back(req);
     }
@@ -96,15 +95,18 @@ void run() {
   Globals::table_ = new LinkedTable(cols);
 
   std::vector<std::thread> ts;
+  sticky_fn(to_stickify);
   for (int i = 0; i < 4; i++) {
-    // ts.emplace_back(substantiate, std::ref(txs[i]));
+    ts.emplace_back(substantiate, std::ref(txs[i]));
   }
   for (auto& t : ts) {
-    // t.join();
+    t.join();
   }
-  sticky_fn(to_stickify);
 
   lazy::Globals::shutdown();
+  for (auto* req : to_stickify) {
+    delete req;
+  }
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,
