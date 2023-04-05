@@ -3,6 +3,7 @@
 #include "linked_table.h"
 #include "lazy_engine.h"
 #include "logs.h"
+#include "../utils.h"
 
 using std::memory_order;
 
@@ -71,7 +72,8 @@ namespace lazy {
   }
 
   SubstantiateResult Request::substantiate() {
-    cout << "this " << this << endl;
+    cout << "this request: " << this << endl << std::flush;
+    cout << " at txid: " << this->tx_id() << endl << std::flush;
 		if (!stickified_.load(std::memory_order_seq_cst)) {
 			return SubstantiateResult::STALLED;
 		}
@@ -89,6 +91,9 @@ namespace lazy {
 
     // Substantiate all the transactions that this trans depends on
     auto deps = Globals::dep_.get_dependencies(tid_);
+    // cout << "substantiating dependencies of " << tid_ <<
+      // " which are: ";
+    // utils::print(deps);
     for (auto* tx : deps) {
       auto _res = tx->substantiate();
 			// The result here should never be stalled or failed,

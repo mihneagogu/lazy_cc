@@ -47,7 +47,7 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
   bool has_dep = false;
   for (int slot : read_set) {
     const auto& prev = last_writes_[slot];
-    cout << "last write to slot performed by " << prev.tx_ << endl;
+    // cout << "last write to slot performed by " << prev.tx_ << endl;
     if (prev.tx_ != LastWrite::NO_TX) {
       if (!has_dep) {
         // SUG: use upgradable locks from boost?
@@ -55,7 +55,7 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
         write.lock();
       }
       has_dep = true;
-      cout << tx << " depends on previous tx " << prev.tx_ << endl;
+      // cout << tx << " depends on previous tx " << prev.tx_ << endl;
       add_dep(tx, prev.tx_);
     }
   }

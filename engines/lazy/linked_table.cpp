@@ -32,7 +32,15 @@ void LinkedIntColumn::insert_at(int bucket, IntSlot&& val) {
 }
 
 LinkedTable::LinkedTable(std::vector<LinkedIntColumn>* cols): cols_(cols) {
-    last_substantiations_ = std::vector<std::atomic<Time>>(cols->size());
+    int tb_size = (*cols)[0].size();
+    last_substantiations_ = std::vector<std::atomic<Time>>(tb_size);
+    for (int i = 0; i < tb_size; i++) {
+        last_substantiations_[i].store(constants::T0, std::memory_order_seq_cst);
+    }
+}
+
+int LinkedIntColumn::size() const {
+    return data_.size();
 }
 
 void LinkedTable::insert_at(int col, int bucket, IntSlot&& val) {
@@ -74,9 +82,9 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
       return std::numeric_limits<int>::min();
     }
 
-    cout << "entry found!" << endl;
     // SUG: Different memory ordering
     Time last_write = last_substantiations_[slot].load(std::memory_order_seq_cst);
+    cout << "entry found! with last write at t: " << last_write << endl;
     
     // The entry might not be a sticky but last_write < t
     // Some thread might have written to it but not updated last_substantiations

@@ -62,7 +62,7 @@ Request* mock_tx(std::mt19937& gen) {
 
 void run() {
   constexpr int mili = 1000000;
-  constexpr int subst_cores = 2;
+  constexpr int subst_cores = 1;
 
   std::random_device rd;  
   std::mt19937 gen(rd());  
@@ -80,9 +80,7 @@ void run() {
     cout << Globals::tx_count / subst_cores << " for each core " << endl;
     txs[i].reserve(Globals::tx_count / subst_cores);
     for (int j = 0; j < Globals::tx_count / subst_cores; j++) {
-      cout << "thread " << i << " tx #" << j;
       auto* req = mock_tx(gen);
-      cout << " " << req << endl;
       txs[i].emplace_back(req);
       to_stickify.emplace_back(req);
     }

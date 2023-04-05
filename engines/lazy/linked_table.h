@@ -76,6 +76,7 @@ namespace lazy {
   class LinkedIntColumn {
     public:
       LinkedIntColumn(std::vector<int>&& data);
+      int size() const;
       static LinkedIntColumn from_raw(int ntuples, int* data);
 
       void insert_at(int bucket, IntSlot&& val);
