@@ -57,6 +57,10 @@ bool Entry::has_time(int64_t entry, Time t) {
   return entry_t == t || entry_t == -t;
 }
 
+Time Entry::get_time(int64_t entry) {
+  return static_cast<Time>(entry >> 31);
+}
+
 int Entry::get_val(int64_t entry) {
   // Precondition: Not to be called with INT64_MIN
   int64_t entry_val = entry & (0xffffffff << 31);

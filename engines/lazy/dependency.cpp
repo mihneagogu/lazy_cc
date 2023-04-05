@@ -1,6 +1,7 @@
 #include <mutex>
 
 #include "dependency.h"
+#include "request.h"
 #include "logs.h"
 #include "../utils.h"
 
@@ -10,15 +11,19 @@ bool LastWrite::was_written() const {
   return tx_ != LastWrite::NO_TX;
 }
 
+void DependencyGraph::add_txs(const std::vector<Request*>& txs) {
+  for (auto* req : txs) {
+    txs_[req->tx_id()] = req;
+  }
+}
+
+
 std::vector<Request*> DependencyGraph::get_dependencies(Tid of) {
   std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
   auto deps = dependencies_.find(of);
   if (deps == dependencies_.end()) {
-    cout << "deps of " << of << " empty" << endl;
     return {};
   }
-  cout << "deps of " << of << " non-empty with size " << deps->second.size() << endl;
-  utils::print(deps->second);
   return deps->second;
 }
 

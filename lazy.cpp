@@ -36,7 +36,6 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   Time tx_t = self->time();
   Tid tid = self->tx_id();
 
-  // Read 
   int r1 = tb->safe_read_int(w1, 0, self->time());
   tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
   int r2 = tb->safe_read_int(w2, 0, self->time());
@@ -88,6 +87,7 @@ void run() {
       to_stickify.emplace_back(req);
     }
   }
+  Globals::dep_.add_txs(to_stickify);
   
   std::vector<int> data(Globals::n_slots, 1);
   auto* cols = new std::vector<LinkedIntColumn>();
@@ -96,6 +96,7 @@ void run() {
 
   std::vector<std::thread> ts;
   sticky_fn(to_stickify);
+  
   for (int i = 0; i < 4; i++) {
     ts.emplace_back(substantiate, std::ref(txs[i]));
   }

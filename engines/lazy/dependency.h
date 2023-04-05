@@ -26,6 +26,7 @@ class DependencyGraph {
     DependencyGraph(int n_slots) {
       last_writes_ = std::vector<LastWrite>(n_slots);
     }
+    void add_txs(const std::vector<Request*>& txs);
     /* Must be called without holding the lock. Will acquire a shared lock
      * and upgrade to exclusive in  case there is indeed a dependency */
     void check_dependencies(Tid tx, const std::vector<int>& read_set);

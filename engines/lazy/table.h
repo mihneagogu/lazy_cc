@@ -52,6 +52,7 @@ namespace lazy {
       static bool has_time(int64_t entry, Time t);
       static bool is_sticky(int64_t entry);
       static int get_val(int64_t entry);
+      static int get_time(int64_t entry);
     private:
       std::atomic<int64_t> data_;
   };

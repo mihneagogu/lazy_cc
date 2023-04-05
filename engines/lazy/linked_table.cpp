@@ -44,10 +44,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // ------------------------------
     // When a client requests a read then it finds the latest version of a value,
     // then gets the occupied counter, then tries to safe read the value at that counter.
-
-
     auto& column = (*cols_)[col].data_;
-
     int64_t val;
     int64_t entry;
     int64_t entry_t;
@@ -62,6 +59,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
         if (Entry::has_time(entry, t)) {
             found = true;
             val = Entry::get_val(entry);
+            entry_t = Entry::get_time(entry);
             break;
         }
         curr = e->next_.load(std::memory_order_seq_cst);
@@ -72,9 +70,11 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // INT_MIN and log
     if (!found) {
       // TODO: log this somewhere (in an append-only log?)
+      cout << "Entry not found!" << endl;
       return std::numeric_limits<int>::min();
     }
 
+    cout << "entry found!" << endl;
     // SUG: Different memory ordering
     Time last_write = last_substantiations_[slot].load(std::memory_order_seq_cst);
     
@@ -85,9 +85,10 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     if (!Entry::is_sticky(entry) || (last_write >= t)) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
+        cout << "entry is not sticky" << endl;
         return val;
     }
-    assert(entry_t < 0); // Time 
+    assert(entry_t < 0); // This must be a sticky! 
     // Nobody has substantiated this sticky, so let's do it ourselves.
     Tid tx_id = val;
     auto* tx = Globals::dep_.tx_of(tx_id);
