@@ -28,6 +28,7 @@ void LinkedIntColumn::insert_at(int bucket, IntSlot&& val) {
     // with respect to the timestamp ordering, therefore the insertions need to
     // be synchronised.
 
+    cout << "node " << bucket << " ";
     data_[bucket].push(val.t_, val.val_);
 }
 
@@ -44,7 +45,6 @@ int LinkedIntColumn::size() const {
 }
 
 void LinkedTable::insert_at(int col, int bucket, IntSlot&& val) {
-    // cout << "inserting at bucket " << bucket << " value " << val.t_ << " at time " << val.t_ << endl;
     (*cols_)[col].insert_at(bucket, std::move(val));
 }
 
@@ -62,8 +62,10 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     auto& curr = bucket.head_;
     Bucket::BucketNode* e = nullptr;
     while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+
         // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
+        cout << "entry at slot " << slot << " has time " << Entry::get_time(entry) << endl;
         if (Entry::has_time(entry, t)) {
             found = true;
             val = Entry::get_val(entry);
@@ -78,13 +80,14 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // INT_MIN and log
     if (!found) {
       // TODO: log this somewhere (in an append-only log?)
-      cout << "Entry not found!" << endl;
+      cout << "Entry " << slot << " not found for time " << t << " | "
+          << " slot has " << Globals::table_->size_at(slot, 0) << " entries " << endl;
       return std::numeric_limits<int>::min();
     }
 
     // SUG: Different memory ordering
     Time last_write = last_substantiations_[slot].load(std::memory_order_seq_cst);
-    cout << "entry found! with last write at t: " << last_write << endl;
+    cout << "entry " << slot << " found! with last write at t: " << last_write << endl;
     
     // The entry might not be a sticky but last_write < t
     // Some thread might have written to it but not updated last_substantiations
@@ -93,7 +96,6 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     if (!Entry::is_sticky(entry) || (last_write >= t)) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
-        cout << "entry is not sticky" << endl;
         return val;
     }
     assert(entry_t < 0); // This must be a sticky! 

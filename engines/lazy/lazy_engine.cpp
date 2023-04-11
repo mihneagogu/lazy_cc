@@ -10,7 +10,7 @@ namespace lazy {
   DependencyGraph Globals::dep_ = DependencyGraph(Globals::n_slots);
 
   Time Clock::time() const { return current_time_.load(std::memory_order_seq_cst); }
-  Time Clock::advance() { return current_time_.fetch_add(1, std::memory_order_seq_cst); }
+  Time Clock::advance() { return current_time_.fetch_add(1, std::memory_order_seq_cst) + 1; }
 
   void Globals::shutdown() {
     if (Globals::table_) {

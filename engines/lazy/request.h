@@ -96,16 +96,14 @@ namespace lazy {
 
       // Transaction, or just normal request?
       bool is_tx_; 
-    // sorted in prefix notation to avoid recursive types
-      // how about recursive type with allocated arena?
-      std::vector<Operation> operations_;
+      std::vector<Operation> operations_; // UNUSED for now since the writes and reads are hardcored
 
       Computation fp_;
       // For testing purposes assume the r/w sets have been determined
       // without the overhead of interpretation
       bool rw_known_in_advance_;
-      std::vector<int> read_set_; // slots, but at what time?
-      std::vector<int> write_set_; // slots, but at what time?
+      std::vector<int> read_set_; 
+      std::vector<int> write_set_; 
       Tid tid_; // This request's id
       Time epoch_; // commit & execution time of the transaction
 

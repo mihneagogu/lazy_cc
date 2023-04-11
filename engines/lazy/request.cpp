@@ -105,7 +105,7 @@ namespace lazy {
 
     computation_performed_.store(true, std::memory_order_seq_cst);
     Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
-		return SubstantiateResult::STALLED;
+		return SubstantiateResult::SUCCESS;
   }
 
   bool Request::was_performed() const {

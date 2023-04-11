@@ -37,7 +37,7 @@ namespace lazy {
       Entry() = default;
       Entry(const Entry& other) = delete;
       Entry(Entry&& other) = delete;
-      Entry(Time t, int val): data_((t << 31) | val) {}
+      Entry(Time t, int val): data_((static_cast<int64_t>(t) << 31) | val) {}
 
       static Entry sticky(Time t, int val);
       bool is_invalid(std::memory_order ord = std::memory_order_seq_cst);

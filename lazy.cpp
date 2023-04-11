@@ -54,6 +54,8 @@ Request* mock_tx(std::mt19937& gen) {
   std::vector<int> ws{w1, w2, w3};
   std::vector<int> rs = ws;
   auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+  cout << "req " << req->tx_id() << " w1 w2 w3 ";
+  cout << w1 << " " << w2 << " " << w3 << endl;
   req->set_write_to(w1, w2, w3);
   return req;
 }
@@ -93,6 +95,10 @@ void run() {
   Globals::table_ = new LinkedTable(cols);
 
   std::vector<std::thread> ts;
+  cout << "before stickification : " << endl;
+  for (int i = 0; i < 10; i++) {
+    cout << "size at slot " << i << " " << Globals::table_->size_at(i, 0) << endl;
+  }
   sticky_fn(to_stickify);
   
   for (int i = 0; i < 4; i++) {

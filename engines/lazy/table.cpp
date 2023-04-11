@@ -15,7 +15,7 @@ IntSlot IntSlot::sticky(Time t, Tid tid) {
 
 int Entry::get_value(std::memory_order ord) {
   int64_t entry = data_.load(ord);
-  int val_mask = 0xffffffff;
+  int64_t val_mask = 0xffffffff;
   return static_cast<int>(entry & val_mask);
 }
 

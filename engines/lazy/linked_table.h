@@ -8,6 +8,7 @@
 #include <list>
 
 #include "lazy_engine.h"
+#include "logs.h"
 #include "request.h"
 #include "types.h"
 #include "table.h"
@@ -35,6 +36,7 @@ namespace lazy {
       auto* node = new BucketNode(t, val);
       head_ = node;
       tail_ = node;
+      size_.store(1);
     }
 
     Bucket() = delete;
@@ -46,15 +48,26 @@ namespace lazy {
       tail_.store(other.tail_.load());
       other.head_.store(nullptr);
       other.tail_.store(nullptr);
+      size_.store(other.size());
     }
     Bucket(const Bucket& other) = delete;
 
     std::atomic<BucketNode*> head_;
     std::atomic<BucketNode*> tail_;
+    std::atomic<int> size_;
 
     void push(Time t, int val) {
-      push(new BucketNode(t, val));
+      auto* node = new BucketNode(t, val);
+      push(node);
+      size_.fetch_add(1);
+      cout << "new entry to slot has val " << node->entry_.get_value() << " and write time " <<
+        node->entry_.write_time() << endl;;
     }
+
+    int size() const {
+      return size_.load();
+    }
+
     void push(BucketNode* e) {
       auto prev_tail = tail_.load(std::memory_order_seq_cst);
       while (!tail_.compare_exchange_strong(prev_tail, e, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
@@ -103,6 +116,11 @@ namespace lazy {
         
         int safe_read_int(int slot, int col, Time t);
         void safe_write_int(int slot, int col, int val, Time t);
+
+        // TODO remove
+        int size_at(int slot, int col) {
+          return (*cols_)[0].data_[slot].size();
+        }
 
         int raw_read_int(int slot, int col, Time t, Tid as);
         // TODO: when calling raw_write_int also increment the last_substantiations_

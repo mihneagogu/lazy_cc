@@ -44,7 +44,7 @@ namespace lazy {
 
       // Details of the experiment
       static constexpr int n_slots = 10;
-      static constexpr int tx_count = 100;
+      static constexpr int tx_count = 2;
   };
 
   /*
