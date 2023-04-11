@@ -13,14 +13,11 @@ IntSlot IntSlot::sticky(Time t, Tid tid) {
     return IntSlot(-t, tid);
 }
 
-int Entry::get_value(std::memory_order ord) {
-  int64_t entry = data_.load(ord);
-  int64_t val_mask = 0xffffffff;
-  return static_cast<int>(entry & val_mask);
-}
+Entry::Entry(Time t, int val): detail_(EntryData(t, val)) {}
 
-Entry Entry::sticky(Time t, int val) {
-  return Entry(-t, val);
+int Entry::get_value(std::memory_order ord) {
+  auto detail = detail_.load(ord);
+  return detail.val_;
 }
 
 inline Tid Entry::get_transaction_id(std::memory_order ord) {
@@ -32,43 +29,27 @@ inline Time Entry::sticky_time(std::memory_order ord) {
 }
 
 Time Entry::write_time(std::memory_order ord) {
-  return static_cast<Time>(data_.load(ord) >> 31);
+  return detail_.load(ord).t_;
 }
 
 void Entry::write(Time t, int val, std::memory_order ord) {
-  int64_t data = (t << 31) | val;
-  data_.store(data, ord);
+  detail_.store(EntryData(t, val), ord);
 }
 
-int64_t Entry::load(std::memory_order ord) {
-  return data_.load(ord);
+Entry::EntryData Entry::load(std::memory_order ord) {
+  return detail_.load(ord);
 }
 
-bool Entry::is_invalid(std::memory_order ord) {
-  int64_t entry = data_.load(ord);
-  int64_t invalid_mask = constants::T_INVALID << 31;
-  int64_t time = invalid_mask & entry;
-  return time == invalid_mask;
+bool Entry::EntryData::is_invalid() const {
+  return t_ == constants::T_INVALID;
 }
 
-bool Entry::has_time(int64_t entry, Time t) {
-  // Precondition: Not to be called with INT64_MIN
-  int64_t entry_t = entry >> 31; 
-  return entry_t == t || entry_t == -t;
+bool Entry::EntryData::has_time(Time t) const {
+  return t_ == t || t_ == -t;
 }
 
-Time Entry::get_time(int64_t entry) {
-  return static_cast<Time>(entry >> 31);
-}
-
-int Entry::get_val(int64_t entry) {
-  // Precondition: Not to be called with INT64_MIN
-  int64_t entry_val = entry & (0xffffffff << 31);
-  return static_cast<int>(entry_val);
-}
-
-inline bool Entry::is_sticky(int64_t entry) {
-  return (entry >> 31) < 0;
+inline bool Entry::EntryData::is_sticky() const {
+  return t_ < 0;
 }
 
 
@@ -83,15 +64,16 @@ IntColumn IntColumn::from_raw(int ntuples, int* data) {
   return IntColumn(std::vector<int>(data, data + ntuples));
 }
 
-void IntColumn::insert_at(int bucket, IntSlot&& val) {
+void IntColumn::insert_at(int bucket, Time t, int val) {
     auto it = bucket * constants::TIMESTAMPS_PER_TUPLE;
     auto end = it + constants::TIMESTAMPS_PER_TUPLE;
     bool found_free = false;
     for (; it < end; it++) {
         // TODO: use Entry class.
-        if (data_[it].is_invalid(std::memory_order_seq_cst)) {
+        auto ed = data_[it].load(std::memory_order_seq_cst);
+        if (ed.is_invalid()) {
             // TODO: Eviction policy?
-            data_[it].write(val.t_, val.val_, std::memory_order_seq_cst);
+            data_[it].write(t, val, std::memory_order_seq_cst);
             found_free = true;
             break;
         }
@@ -106,8 +88,8 @@ Table::Table(std::vector<IntColumn>* cols): cols_(cols) {
     last_substantiations_ = std::vector<std::atomic<Time>>(cols->size());
 }
 
-void Table::insert_at(int col, int bucket, IntSlot&& val) {
-    (*cols_)[col].insert_at(bucket, std::move(val));
+void Table::insert_at(int col, int bucket, Time t, int val) {
+    (*cols_)[col].insert_at(bucket, t, val);
 }
 
 int Table::safe_read_int(int slot, int col, Time t) {
@@ -121,16 +103,16 @@ int Table::safe_read_int(int slot, int col, Time t) {
     auto it = slot * constants::TIMESTAMPS_PER_TUPLE;
     auto end = it + constants::TIMESTAMPS_PER_TUPLE;
     int64_t val;
-    int64_t entry;
-    int64_t entry_t;
+    Entry::EntryData entry;
+    Time entry_t;
     bool found = false;
     int found_idx = -1;
     for (; it < end; it++) {
         // SUG: Different memory ordering
         entry = column[it].load(std::memory_order_seq_cst);
-        if (Entry::has_time(entry, t)) {
+        if (entry.has_time(t)) {
             found = true;
-            val = Entry::get_val(entry);
+            val = entry.val_;
             found_idx = it;
             break;
         }
@@ -151,7 +133,7 @@ int Table::safe_read_int(int slot, int col, Time t) {
     // Some thread might have written to it but not updated last_substantiations
     // or two threads with different timestamp wrote to last_substantiations
     // but the one with lower time won.
-    if (!Entry::is_sticky(entry) || (last_write >= t)) {
+    if (!entry.is_sticky() || (last_write >= t)) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
         return val;

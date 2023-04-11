@@ -47,6 +47,7 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
 }
 
 Request* mock_tx(std::mt19937& gen) {
+  // each transaction writes 3 ints
   std::uniform_int_distribution<int> dis(1, Globals::n_slots - 1);  // define the distribution
   int w1 = dis(gen);
   int w2 = dis(gen);
@@ -60,9 +61,12 @@ Request* mock_tx(std::mt19937& gen) {
   return req;
 }
 
-// each transaction writes 3 ints
 
 void run() {
+  if (!std::atomic<Entry::EntryData>().is_lock_free()) {
+    cout << "Entry data is not lock free. Aborting!" << endl;
+    exit(1);
+  }
   constexpr int mili = 1000000;
   constexpr int subst_cores = 1;
 

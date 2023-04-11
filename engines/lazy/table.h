@@ -34,27 +34,33 @@ namespace lazy {
   // otherwise represents (-time of sticky insertion, transaction id)
   class Entry {
     public:
+      struct EntryData {
+        Time t_;
+        int val_;
+        EntryData() = default;
+        EntryData(Time t, int val): t_(t), val_(val) {}
+
+        bool has_time(Time t) const;
+        bool is_sticky() const;
+        bool is_invalid() const;
+      };
+
       Entry() = default;
       Entry(const Entry& other) = delete;
       Entry(Entry&& other) = delete;
-      Entry(Time t, int val): data_((static_cast<int64_t>(t) << 31) | val) {}
+      Entry(Time t, int val);
 
       static Entry sticky(Time t, int val);
-      bool is_invalid(std::memory_order ord = std::memory_order_seq_cst);
       Tid get_transaction_id(std::memory_order ord = std::memory_order_seq_cst);
       int get_value(std::memory_order ord = std::memory_order_seq_cst);
       Time sticky_time(std::memory_order ord = std::memory_order_seq_cst);
       Time write_time(std::memory_order ord = std::memory_order_seq_cst);
 
       void write(Time t, int val, std::memory_order ord = std::memory_order_seq_cst);
-      int64_t load(std::memory_order ord = std::memory_order_seq_cst);
+      Entry::EntryData load(std::memory_order ord = std::memory_order_seq_cst);
 
-      static bool has_time(int64_t entry, Time t);
-      static bool is_sticky(int64_t entry);
-      static int get_val(int64_t entry);
-      static int get_time(int64_t entry);
     private:
-      std::atomic<int64_t> data_;
+      std::atomic<EntryData> detail_;
   };
 
   class IntColumn {
@@ -62,7 +68,7 @@ namespace lazy {
       IntColumn(std::vector<int>&& data);
       static IntColumn from_raw(int ntuples, int* data);
 
-      void insert_at(int bucket, IntSlot&& val);
+      void insert_at(int bucket, Time t, int val);
 
       // What is the logical capacity of records of this
       int ntuples_;
@@ -82,7 +88,7 @@ namespace lazy {
         Table() = default;
         Table(std::vector<IntColumn>* cols);
         int rows() const;
-        void insert_at(int col, int bucket, IntSlot&& val);
+        void insert_at(int col, int bucket, Time t, int val);
         
         int safe_read_int(int slot, int col, Time t);
         void safe_write_int(int slot, int col, int val, Time t);

@@ -20,7 +20,7 @@ LinkedIntColumn LinkedIntColumn::from_raw(int ntuples, int* data) {
   return LinkedIntColumn(std::vector<int>(data, data + ntuples));
 }
 
-void LinkedIntColumn::insert_at(int bucket, IntSlot&& val) {
+void LinkedIntColumn::insert_at(int bucket, Time t, int val) {
     // Two txs are ordered wrt to the dependency graph if:
     // One reads the other's write to a slot. I.e the latter's readset
     // n former's writeset contains the given slot. 
@@ -29,7 +29,7 @@ void LinkedIntColumn::insert_at(int bucket, IntSlot&& val) {
     // be synchronised.
 
     cout << "node " << bucket << " ";
-    data_[bucket].push(val.t_, val.val_);
+    data_[bucket].push(t, val);
 }
 
 LinkedTable::LinkedTable(std::vector<LinkedIntColumn>* cols): cols_(cols) {
@@ -44,8 +44,8 @@ int LinkedIntColumn::size() const {
     return data_.size();
 }
 
-void LinkedTable::insert_at(int col, int bucket, IntSlot&& val) {
-    (*cols_)[col].insert_at(bucket, std::move(val));
+void LinkedTable::insert_at(int col, int bucket, Time t, int val) {
+    (*cols_)[col].insert_at(bucket, t, val);
 }
 
 int LinkedTable::safe_read_int(int slot, int col, Time t) {
@@ -54,8 +54,8 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // then gets the occupied counter, then tries to safe read the value at that counter.
     auto& column = (*cols_)[col].data_;
     int64_t val;
-    int64_t entry;
-    int64_t entry_t;
+    Entry::EntryData entry;
+    Time entry_t;
     bool found = false;
 
     auto& bucket = column[slot];
@@ -65,11 +65,11 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
 
         // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
-        cout << "entry at slot " << slot << " has time " << Entry::get_time(entry) << endl;
-        if (Entry::has_time(entry, t)) {
+        cout << "entry at slot " << slot << " has time " << entry.t_ << endl;
+        if (entry.has_time(t)) {
             found = true;
-            val = Entry::get_val(entry);
-            entry_t = Entry::get_time(entry);
+            val = entry.val_;
+            entry_t = entry.val_;
             break;
         }
         curr = e->next_.load(std::memory_order_seq_cst);
@@ -93,7 +93,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // Some thread might have written to it but not updated last_substantiations
     // or two threads with different timestamp wrote to last_substantiations
     // but the one with lower time won.
-    if (!Entry::is_sticky(entry) || (last_write >= t)) {
+    if (!entry.is_sticky() || (last_write >= t)) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
         return val;
@@ -108,8 +108,8 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     while ((e = curr_.load(std::memory_order_seq_cst)) != nullptr) {
         // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
-        if (Entry::has_time(entry, t)) {
-            return Entry::get_val(entry);
+        if (entry.has_time(t)) {
+            return entry.val_;
         }
         curr_ = e->next_.load(std::memory_order_seq_cst);
     }

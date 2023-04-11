@@ -92,7 +92,7 @@ namespace lazy {
       int size() const;
       static LinkedIntColumn from_raw(int ntuples, int* data);
 
-      void insert_at(int bucket, IntSlot&& val);
+      void insert_at(int bucket, Time t, int val);
 
       // What is the logical capacity of records of this
       int ntuples_;
@@ -112,7 +112,7 @@ namespace lazy {
         LinkedTable() = default;
         LinkedTable(std::vector<LinkedIntColumn>* cols);
         int rows() const;
-        void insert_at(int col, int bucket, IntSlot&& val);
+        void insert_at(int col, int bucket, Time t, int val);
         
         int safe_read_int(int slot, int col, Time t);
         void safe_write_int(int slot, int col, int val, Time t);
