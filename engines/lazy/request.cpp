@@ -32,10 +32,10 @@ namespace lazy {
     Globals::dep_.sticky_written(tid_, slot);
   }
 
-    void Request::set_request_time() {
-        tid_ = ++request_cnt;
-        epoch_ = Globals::clock_.advance();
-    }
+  void Request::set_request_time() {
+      tid_ = ++request_cnt;
+      epoch_ = Globals::clock_.advance();
+  }
 
   Time Request::time() const {
     return epoch_;
@@ -72,8 +72,7 @@ namespace lazy {
   }
 
   SubstantiateResult Request::substantiate() {
-    cout << "this request: " << this << endl << std::flush;
-    cout << " at txid: " << this->tx_id() << endl << std::flush;
+    cout << "substantiating this request: " << this << " with txid " << tx_id() << endl;
 		if (!stickified_.load(std::memory_order_seq_cst)) {
 			return SubstantiateResult::STALLED;
 		}
@@ -81,19 +80,23 @@ namespace lazy {
       // Someone else already executed this transaction!
       return SubstantiateResult::SUCCESS;
     }
+    
     // SUG: Use trylock and do something useful if someone is executing this?
     std::scoped_lock<std::mutex> execute(tx_lock_);
-    if (was_performed()) {
+    auto status = execution_status();
+    if (status == ExecutionStatus::DONE) {
       // Maybe someone else executed it while we were trying to acquire the lock
       // in which case we don't need to reexecute the code
+      return SubstantiateResult::SUCCESS;
+    }
+    if (status == ExecutionStatus::EXECUTING_NOW) {
+      // We are already trying to execute the computation right now
+      // so abort, since we do not want any re-entrancy problems
       return SubstantiateResult::SUCCESS;
     }
 
     // Substantiate all the transactions that this trans depends on
     auto deps = Globals::dep_.get_dependencies(tid_);
-    // cout << "substantiating dependencies of " << tid_ <<
-      // " which are: ";
-    // utils::print(deps);
     for (auto* tx : deps) {
       auto _res = tx->substantiate();
 			// The result here should never be stalled or failed,
@@ -101,18 +104,26 @@ namespace lazy {
     }
     
     // We are the only thread which can perform the computation. Do it now
+    status_.store(ExecutionStatus::EXECUTING_NOW, std::memory_order_seq_cst);
+    cout << "calling fp!" << endl; 
     fp_(this, Globals::table_, write1_, write2_, write3_);
 
-    computation_performed_.store(true, std::memory_order_seq_cst);
     Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
+    status_.store(ExecutionStatus::DONE, std::memory_order_seq_cst);
 		return SubstantiateResult::SUCCESS;
   }
 
-  bool Request::was_performed() const {
-    // SUG: Should be able to use relaxed here, or at least
-    // release?
-    return computation_performed_.load(std::memory_order_seq_cst);
+  ExecutionStatus Request::execution_status() const {
+    return status_.load(std::memory_order_seq_cst);
   }
+
+  bool Request::was_performed() const {
+    return execution_status() == ExecutionStatus::DONE;
+  }
+
+  bool Request::is_being_executed() const {
+    return execution_status() == ExecutionStatus::EXECUTING_NOW;
+  } 
 
 } // namespace lazy
 

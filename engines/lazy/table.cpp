@@ -2,6 +2,7 @@
 #include <cassert>
 
 #include "table.h"
+#include "logs.h"
 #include "lazy_engine.h"
 #include "types.h"
 
@@ -138,6 +139,7 @@ int Table::safe_read_int(int slot, int col, Time t) {
         // find the value
         return val;
     }
+    cout << "sticky entry has time " << entry_t << endl;
     assert(entry_t < 0); // Time 
     // Nobody has substantiated this sticky, so let's do it ourselves.
     Tid tx_id = val;

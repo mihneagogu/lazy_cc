@@ -27,9 +27,17 @@ void sticky_fn(std::vector<Request*>& reqs) {
   cout << "stickification performed" << endl;
 }
 
-void substantiate(std::vector<Request*>& reqs) {
-	auto worker = ExecutionWorker(reqs);
-	worker.run();
+void client_calls(const std::vector<std::pair<int, int>>& writes) {
+  std::random_device rd;  
+  std::mt19937 gen(rd());  
+
+  std::uniform_int_distribution<int> dis(0, writes.size() - 1);  // define the distribution
+  auto idx = dis(gen);
+
+  auto slot = writes[idx].first;
+  auto time = writes[idx].second;
+  cout << "trying to read slot " << slot << " at time " << time  << endl;
+  auto res = Globals::table_->safe_read_int(slot, 0, time);
 }
 
 int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
@@ -46,7 +54,7 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   return 3; // 3 writes
 }
 
-Request* mock_tx(std::mt19937& gen) {
+Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
   // each transaction writes 3 ints
   std::uniform_int_distribution<int> dis(1, Globals::n_slots - 1);  // define the distribution
   int w1 = dis(gen);
@@ -55,6 +63,11 @@ Request* mock_tx(std::mt19937& gen) {
   std::vector<int> ws{w1, w2, w3};
   std::vector<int> rs = ws;
   auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+
+  writes.emplace_back(w1, req->time());
+  writes.emplace_back(w2, req->time());
+  writes.emplace_back(w3, req->time());
+
   cout << "req " << req->tx_id() << " w1 w2 w3 ";
   cout << w1 << " " << w2 << " " << w3 << endl;
   req->set_write_to(w1, w2, w3);
@@ -67,8 +80,6 @@ void run() {
     cout << "Entry data is not lock free. Aborting!" << endl;
     exit(1);
   }
-  constexpr int mili = 1000000;
-  constexpr int subst_cores = 1;
 
   std::random_device rd;  
   std::mt19937 gen(rd());  
@@ -80,13 +91,15 @@ void run() {
   std::vector<int> tasks;
   std::vector<std::vector<Request*>> txs(4);
   std::vector<Request*> to_stickify;
+  std::vector<std::pair<int, int>> writes;
   to_stickify.reserve(Globals::tx_count);
 
-  for (int i = 0; i < subst_cores; i++) {
-    cout << Globals::tx_count / subst_cores << " for each core " << endl;
-    txs[i].reserve(Globals::tx_count / subst_cores);
-    for (int j = 0; j < Globals::tx_count / subst_cores; j++) {
-      auto* req = mock_tx(gen);
+  int cores = Globals::subst_cores;
+  for (int i = 0; i < Globals::subst_cores; i++) {
+    cout << Globals::tx_count / cores << " for each core " << endl;
+    txs[i].reserve(Globals::tx_count / cores);
+    for (int j = 0; j < Globals::tx_count / cores; j++) {
+      auto* req = mock_tx(gen, writes);
       txs[i].emplace_back(req);
       to_stickify.emplace_back(req);
     }
@@ -99,14 +112,10 @@ void run() {
   Globals::table_ = new LinkedTable(cols);
 
   std::vector<std::thread> ts;
-  cout << "before stickification : " << endl;
-  for (int i = 0; i < 10; i++) {
-    cout << "size at slot " << i << " " << Globals::table_->size_at(i, 0) << endl;
-  }
   sticky_fn(to_stickify);
   
-  for (int i = 0; i < 4; i++) {
-    ts.emplace_back(substantiate, std::ref(txs[i]));
+  for (int i = 0; i < cores; i++) {
+    ts.emplace_back(client_calls, std::ref(writes));
   }
   for (auto& t : ts) {
     t.join();

@@ -52,21 +52,24 @@ namespace lazy {
 
 
 	enum class SubstantiateResult {
-		SUCCESS, FAIL, STALLED
+		SUCCESS, FAIL, STALLED, RUNNING
 	};
+
+  enum class ExecutionStatus {
+    DONE, EXECUTING_NOW, UNEXECUTED
+  };
 
   class Request {
     public:
       using Tid = int;
 
-
       // SUG: Heuristic for how many slots would be a read or write so we can
       // pre-allocate
-      Request(bool is_tx, Computation code, std::vector<Operation>&& ops): is_tx_(is_tx), operations_(std::move(ops)),  fp_(code), rw_known_in_advance_(false) , computation_performed_(false), stickified_(false) {
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops): is_tx_(is_tx), operations_(std::move(ops)),  fp_(code), rw_known_in_advance_(false) , stickified_(false), status_(ExecutionStatus::UNEXECUTED) {
         set_request_time();
       }
 
-      Request(bool is_tx, Computation code, std::vector<Operation>&& ops, std::vector<int>&& write_set, std::vector<int>&& read_set): is_tx_(is_tx), operations_(std::move(ops)), fp_(code), rw_known_in_advance_(true), read_set_(std::move(read_set)) , write_set_(std::move(write_set)), computation_performed_(false), stickified_(false) {
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops, std::vector<int>&& write_set, std::vector<int>&& read_set): is_tx_(is_tx), operations_(std::move(ops)), fp_(code), rw_known_in_advance_(true), read_set_(std::move(read_set)) , write_set_(std::move(write_set)), stickified_(false),  status_(ExecutionStatus::UNEXECUTED) {
       set_request_time();
     }
 
@@ -74,6 +77,8 @@ namespace lazy {
       void stickify();
       SubstantiateResult substantiate();
       bool was_performed() const;
+      ExecutionStatus execution_status() const;
+      bool is_being_executed() const;
       Time time() const;
       Tid tx_id() const;
 
@@ -110,8 +115,8 @@ namespace lazy {
       // Lock for the actualy computation execution of the transaction. 
       // Acquired when a transaction is substantiated
       std::mutex tx_lock_;
-      std::atomic<bool> computation_performed_;
       std::atomic<bool> stickified_;
+      std::atomic<ExecutionStatus> status_;
   };
 
 } // namespace lazy

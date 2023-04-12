@@ -27,8 +27,6 @@ void LinkedIntColumn::insert_at(int bucket, Time t, int val) {
     // However two txs which perform a blind write to a slot are not ordered
     // with respect to the timestamp ordering, therefore the insertions need to
     // be synchronised.
-
-    cout << "node " << bucket << " ";
     data_[bucket].push(t, val);
 }
 
@@ -49,6 +47,7 @@ void LinkedTable::insert_at(int col, int bucket, Time t, int val) {
 }
 
 int LinkedTable::safe_read_int(int slot, int col, Time t) {
+    cout << "safe read int slot " << slot << " which was written at time " << t << endl;
     // ------------------------------
     // When a client requests a read then it finds the latest version of a value,
     // then gets the occupied counter, then tries to safe read the value at that counter.
@@ -65,11 +64,11 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
 
         // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
-        cout << "entry at slot " << slot << " has time " << entry.t_ << endl;
         if (entry.has_time(t)) {
             found = true;
             val = entry.val_;
-            entry_t = entry.val_;
+            entry_t = entry.t_;
+            cout << "found desired entry at time " << entry.t_ << endl;
             break;
         }
         curr = e->next_.load(std::memory_order_seq_cst);
@@ -85,28 +84,35 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
       return std::numeric_limits<int>::min();
     }
 
-    // SUG: Different memory ordering
-    Time last_write = last_substantiations_[slot].load(std::memory_order_seq_cst);
-    cout << "entry " << slot << " found! with last write at t: " << last_write << endl;
-    
-    // The entry might not be a sticky but last_write < t
+    // The entry might not be a sticky but last_subst < t
     // Some thread might have written to it but not updated last_substantiations
     // or two threads with different timestamp wrote to last_substantiations
     // but the one with lower time won.
-    if (!entry.is_sticky() || (last_write >= t)) {
+    if (!entry.is_sticky()) {
         // Nobody will ever write this slot anymore, so just 
         // find the value
         return val;
     }
+
+    cout << "sticky entry has time " << entry_t << endl;
     assert(entry_t < 0); // This must be a sticky! 
     // Nobody has substantiated this sticky, so let's do it ourselves.
     Tid tx_id = val;
     auto* tx = Globals::dep_.tx_of(tx_id);
-    tx->substantiate();
+    auto status = tx->execution_status();
+    if (status != ExecutionStatus::EXECUTING_NOW) {
+        // Go on if we haven't started substantiating the transaction.
+        // If the tx is being executed, it means that the transaction has more
+        // safe_read_int() calls and we are the 2nd (or bigger) call.
+        cout << "substantiating txid " <<  tx->tx_id() << endl;
+        tx->substantiate();
+        cout << "done substantiating txid " <<  tx->tx_id() << endl;
+    } else {
+        cout << "avoiding re-entrant call to substantiate() for tx " << tx->tx_id() << endl;
+    }
 
     auto& curr_ = column[slot].head_;
     while ((e = curr_.load(std::memory_order_seq_cst)) != nullptr) {
-        // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
         if (entry.has_time(t)) {
             return entry.val_;

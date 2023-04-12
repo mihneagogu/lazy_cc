@@ -33,6 +33,8 @@ namespace lazy {
   // If time > 0, then represents (time of write, value),
   // otherwise represents (-time of sticky insertion, transaction id)
   class Entry {
+    // Does this really need to be atomic?
+    // Can a thread read this value while we are writing to it?
     public:
       struct EntryData {
         Time t_;

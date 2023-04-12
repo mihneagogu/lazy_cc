@@ -60,8 +60,6 @@ namespace lazy {
       auto* node = new BucketNode(t, val);
       push(node);
       size_.fetch_add(1);
-      cout << "new entry to slot has val " << node->entry_.get_value() << " and write time " <<
-        node->entry_.write_time() << endl;;
     }
 
     int size() const {
