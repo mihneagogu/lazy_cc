@@ -92,7 +92,7 @@ namespace lazy {
     if (status == ExecutionStatus::EXECUTING_NOW) {
       // We are already trying to execute the computation right now
       // so abort, since we do not want any re-entrancy problems
-      return SubstantiateResult::SUCCESS;
+      return SubstantiateResult::RUNNING;
     }
 
     // Substantiate all the transactions that this trans depends on

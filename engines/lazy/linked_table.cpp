@@ -47,6 +47,13 @@ void LinkedTable::insert_at(int col, int bucket, Time t, int val) {
 }
 
 int LinkedTable::safe_read_int(int slot, int col, Time t) {
+    if (t == constants::T0) {
+        // TODO: remove hardcode. But for now we assume the table was created
+        // at time constants::T0 and each slot has value 1, so if we receive
+        // a request for a read at time consants::T0 it means it must be a 1,
+        // and it wasn't performed by any transaction, but it comes from the initialisation
+        return 1;
+    }
     cout << "safe read int slot " << slot << " which was written at time " << t << endl;
     // ------------------------------
     // When a client requests a read then it finds the latest version of a value,
@@ -61,9 +68,8 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     auto& curr = bucket.head_;
     Bucket::BucketNode* e = nullptr;
     while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
-
-        // If implemented as a linked list the entry need not be atomic actually...
         entry = e->entry_.load(std::memory_order_seq_cst);
+        cout << "entry for slot " << slot << " has time " << entry.t_ << endl;
         if (entry.has_time(t)) {
             found = true;
             val = entry.val_;

@@ -31,7 +31,7 @@ void client_calls(const std::vector<std::pair<int, int>>& writes) {
   std::random_device rd;  
   std::mt19937 gen(rd());  
 
-  std::uniform_int_distribution<int> dis(0, writes.size() - 1);  // define the distribution
+  std::uniform_int_distribution<int> dis(0, writes.size() - 1);
   auto idx = dis(gen);
 
   auto slot = writes[idx].first;
@@ -44,11 +44,11 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   Time tx_t = self->time();
   Tid tid = self->tx_id();
 
-  int r1 = tb->safe_read_int(w1, 0, self->time());
+  int r1 = tb->safe_read_int(w1, 0, self->read1_t_);
   tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
-  int r2 = tb->safe_read_int(w2, 0, self->time());
+  int r2 = tb->safe_read_int(w2, 0, self->read2_t_);
   tb->raw_write_int(w2, 0, r2 + 1, tx_t, tid);
-  int r3 = tb->safe_read_int(w3, 0, self->time());
+  int r3 = tb->safe_read_int(w3, 0, self->read3_t_);
   tb->raw_write_int(w3, 0, r3 + 1, tx_t, tid);
 
   return 3; // 3 writes

@@ -89,10 +89,15 @@ namespace lazy {
         rw_known_in_advance_ = true;
       }
 
+    int write1_;
+    int write2_;
+    int write3_;
+
+    Time read1_t_;
+    Time read2_t_;
+    Time read3_t_;
+
     private:
-      int write1_;
-      int write2_;
-      int write3_;
 
       void insert_sticky(int slot);
       void set_request_time();

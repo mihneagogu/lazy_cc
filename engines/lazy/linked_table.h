@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cstdint>
 #include <list>
+#include <optional>
 
 #include "lazy_engine.h"
 #include "logs.h"

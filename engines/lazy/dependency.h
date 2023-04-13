@@ -24,6 +24,8 @@ struct LastWrite {
 class DependencyGraph {
   public:
     DependencyGraph(int n_slots) {
+      // TODO: use constants::GENESIS_TX, but need to move the constants into
+      // header which doesn't cause mutually recursive header file inclusion
       last_writes_ = std::vector<LastWrite>(n_slots);
     }
     void add_txs(const std::vector<Request*>& txs);
@@ -32,6 +34,7 @@ class DependencyGraph {
     void check_dependencies(Tid tx, const std::vector<int>& read_set);
     std::vector<Request*> get_dependencies(Tid of);
     Request* tx_of(Tid tid);
+    Time time_of_last_write_to(int slot);
 
     void sticky_written(Tid tx, int slot);
 
