@@ -19,7 +19,7 @@ void DependencyGraph::add_txs(const std::vector<Request*>& txs) {
 
 Time DependencyGraph::time_of_last_write_to(int slot) {
   Tid writer = last_writes_[slot].tx_;
-  cout << "last writer tot slot " << slot << " : " << writer << endl;
+  cout << "last writer tot slot " << slot << " tid : " << writer << endl;
   if (writer == LastWrite::NO_TX) {
     return constants::T0;
   }
@@ -66,6 +66,10 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
     // tx which last wrote to it, at the time of stickification.
     // This ensures that the reads which are performed at substantiation time
     // are the correct ones
+    
+    // TODO: If this tx writes to the same slot twice, we 
+    // need to make sure that the second read reads the just-written-to
+    // value
     auto* req = tx_of(tx);
     Time t1 = time_of_last_write_to(req->write1_);
     Time t2 = time_of_last_write_to(req->write2_);

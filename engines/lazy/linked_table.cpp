@@ -117,6 +117,9 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
         cout << "avoiding re-entrant call to substantiate() for tx " << tx->tx_id() << endl;
     }
 
+    // TODO: Keep track of the pointer that previously held the entry
+    // and re-load the data itself? The entry should be written to inplace
+    // so there should be no need to retraverse the list
     auto& curr_ = column[slot].head_;
     while ((e = curr_.load(std::memory_order_seq_cst)) != nullptr) {
         entry = e->entry_.load(std::memory_order_seq_cst);
@@ -128,15 +131,17 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     throw std::runtime_error("unreachable");
 }
 
-void LinkedTable::raw_write_int(int slot, int col, int val, Time t, Tid as) {
+void LinkedTable::safe_write_int(int slot, int col, int val, Time t) {
     // When this is called, it is assumed that all the reads that the write depends on
     // have been executed, as well as all other dependant transactions 
     // (since the reads must have happened earlier to get the value, in which case
     // they triggered a substification chain, or this was a blind write, in which
     // case this does not matter)
+    
+    cout << "safe write to slot " << slot << endl;
     auto& column = (*cols_)[col].data_;
     auto& bucket = column[slot];
-    bucket.push(t, val);
+    bucket.write_at(t, val);
 }
 
 

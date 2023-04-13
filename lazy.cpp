@@ -45,11 +45,13 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   Tid tid = self->tx_id();
 
   int r1 = tb->safe_read_int(w1, 0, self->read1_t_);
-  tb->raw_write_int(w1, 0, r1 + 1, tx_t, tid);
+  cout << "Read r1 " << r1 << endl;
+  cout << "Write w1 " << w1 << " at time " << tx_t << endl;
+  tb->safe_write_int(w1, 0, r1 + 1, tx_t);
   int r2 = tb->safe_read_int(w2, 0, self->read2_t_);
-  tb->raw_write_int(w2, 0, r2 + 1, tx_t, tid);
+  tb->safe_write_int(w2, 0, r2 + 1, tx_t);
   int r3 = tb->safe_read_int(w3, 0, self->read3_t_);
-  tb->raw_write_int(w3, 0, r3 + 1, tx_t, tid);
+  tb->safe_write_int(w3, 0, r3 + 1, tx_t);
 
   return 3; // 3 writes
 }

@@ -67,6 +67,23 @@ namespace lazy {
       return size_.load();
     }
 
+    void write_at(Time t, int val) {
+      auto& curr = head_;
+      Bucket::BucketNode* e = nullptr;
+      Entry::EntryData entry;
+      while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+          entry = e->entry_.load(std::memory_order_seq_cst);
+          cout << "write entry with time " << entry.t_ << endl;
+          if (entry.has_time(t)) {
+              e->entry_.write(t, val, std::memory_order_seq_cst);
+              cout << "written to entry new value " << endl;
+              return;
+          }
+          curr = e->next_.load(std::memory_order_seq_cst);
+      }
+      throw std::runtime_error("Trying to write to an entry at a time which doesn't exist");
+    }
+
     void push(BucketNode* e) {
       auto prev_tail = tail_.load(std::memory_order_seq_cst);
       while (!tail_.compare_exchange_strong(prev_tail, e, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
@@ -120,10 +137,7 @@ namespace lazy {
         int size_at(int slot, int col) {
           return (*cols_)[0].data_[slot].size();
         }
-
-        int raw_read_int(int slot, int col, Time t, Tid as);
-        // TODO: when calling raw_write_int also increment the last_substantiations_
-        void raw_write_int(int slot, int col, int val, Time t, Tid as);
+        void safe_write_int(int slot, int col, int val, Time t, Tid as);
         void enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set);
 
       ~LinkedTable();
