@@ -144,6 +144,20 @@ void LinkedTable::safe_write_int(int slot, int col, int val, Time t) {
     bucket.write_at(t, val);
 }
 
+int LinkedTable::rows() const {
+    return (*cols_)[0].size();
+}
+
+int LinkedTable::checksum() {
+    int nrows = rows();
+    auto& col = (*cols_)[0];
+    int sum = 0;
+    for (int i = 0; i < nrows; i++) {
+        sum += col.data_[i].latest_value();
+    }
+    return sum;
+}
+
 
 void LinkedTable::enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set) {
   for (auto slot : write_set) {

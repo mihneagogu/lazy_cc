@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <list>
 #include <optional>
+#include <cassert>
 
 #include "lazy_engine.h"
 #include "logs.h"
@@ -18,6 +19,7 @@ namespace lazy {
 
   struct Bucket {
 
+    // TODO: Make an iterator interface
     struct BucketNode {
       Entry entry_; 
       std::atomic<BucketNode*> next_;
@@ -30,7 +32,6 @@ namespace lazy {
           delete next;
         }
       }
-
     };
 
     Bucket(Time t, int val) {
@@ -82,6 +83,24 @@ namespace lazy {
           curr = e->next_.load(std::memory_order_seq_cst);
       }
       throw std::runtime_error("Trying to write to an entry at a time which doesn't exist");
+    }
+  
+    int latest_value() {
+      auto& curr = head_;
+      Bucket::BucketNode* e = nullptr;
+      Entry::EntryData entry;
+      Time latest = 0;
+      int val = 1;
+      while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+          entry = e->entry_.load(std::memory_order_seq_cst);
+          assert(entry.t_ > 0);
+          if (entry.t_ > latest) {
+            latest = entry.t_;
+            val = entry.val_;
+          }
+          curr = e->next_.load(std::memory_order_seq_cst);
+      }
+      return val; 
     }
 
     void push(BucketNode* e) {
@@ -139,6 +158,8 @@ namespace lazy {
         }
         void safe_write_int(int slot, int col, int val, Time t, Tid as);
         void enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set);
+
+        int checksum();
 
       ~LinkedTable();
     private:

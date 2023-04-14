@@ -42,7 +42,6 @@ class DependencyGraph {
     std::unordered_map<Tid, std::vector<Request*>> dependencies_;
     std::unordered_map<Tid, Request*> txs_;
   private:
-    void add_dep(Tid tx, Tid on);
     std::vector<LastWrite> last_writes_;
 };
 
