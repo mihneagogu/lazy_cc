@@ -70,7 +70,6 @@ void IntColumn::insert_at(int bucket, Time t, int val) {
     auto end = it + constants::TIMESTAMPS_PER_TUPLE;
     bool found_free = false;
     for (; it < end; it++) {
-        // TODO: use Entry class.
         auto ed = data_[it].load(std::memory_order_seq_cst);
         if (ed.is_invalid()) {
             // TODO: Eviction policy?

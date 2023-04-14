@@ -16,11 +16,6 @@ using std::endl;
 
 namespace lazy {
 
-// TODO: For the substantiate function, actually move part of the code
-// into ExecutorWorker class, so that it can keep track of the queue of requests
-// to serve, and have it work as a circular queue in the case that it was asked
-// to substantiate a request which has not yet been stickified.
-
 void sticky_fn(std::vector<Request*>& reqs) {
   for (auto* req : reqs) {
     req->stickify();
