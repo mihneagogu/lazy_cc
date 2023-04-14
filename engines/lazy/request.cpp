@@ -50,7 +50,6 @@ namespace lazy {
       for (int slot : write_set_) {
         insert_sticky(slot);
       }
-      auto _ = Globals::dep_.get_dependencies(tid_);
       stickified_.store(true, std::memory_order_seq_cst);
       return;
     }

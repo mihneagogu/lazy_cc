@@ -37,11 +37,11 @@ std::vector<Request*> DependencyGraph::get_dependencies(Tid of) {
 }
 
 Request* DependencyGraph::tx_of(Tid tid) {
-  std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
   return txs_[tid];
 }
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
+  // TODO: Double-write in same tx problem causing sticky with same timestamp
   constexpr bool demo = true;
 
   // A transaction T1 depends on another, T2, if
@@ -94,6 +94,12 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
     cout << "tx " << tx << " reads " << req->write1_ << " from write performed at " << t1 << endl;
     cout << "tx " << tx << " reads " << req->write2_ << " from write performed at " << t2 << endl;
     cout << "tx " << tx << " reads " << req->write3_ << " from write performed at " << t3 << endl;
+  }
+
+  if (has_dep) {
+    write.unlock(); 
+  } else {
+    read.unlock();
   }
 }
 

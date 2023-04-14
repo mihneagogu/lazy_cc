@@ -69,10 +69,9 @@ namespace lazy {
     }
 
     void write_at(Time t, int val) {
-      auto& curr = head_;
-      Bucket::BucketNode* e = nullptr;
+      Bucket::BucketNode* e = head_.load(std::memory_order_seq_cst);
       Entry::EntryData entry;
-      while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+      while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
           cout << "write entry with time " << entry.t_ << endl;
           if (entry.has_time(t)) {
@@ -80,25 +79,27 @@ namespace lazy {
               cout << "written to entry new value " << endl;
               return;
           }
-          curr = e->next_.load(std::memory_order_seq_cst);
+          e = e->next_.load(std::memory_order_seq_cst);
       }
       throw std::runtime_error("Trying to write to an entry at a time which doesn't exist");
     }
   
     int latest_value() {
-      auto& curr = head_;
-      Bucket::BucketNode* e = nullptr;
+      Bucket::BucketNode* e = head_.load(std::memory_order_seq_cst);
       Entry::EntryData entry;
       Time latest = 0;
       int val = 1;
-      while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+      while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
+          if (entry.t_ < 0) {
+            cout << "entry has t < 0: " << entry.t_ << endl;
+          }
           assert(entry.t_ > 0);
           if (entry.t_ > latest) {
             latest = entry.t_;
             val = entry.val_;
           }
-          curr = e->next_.load(std::memory_order_seq_cst);
+          e = e->next_.load(std::memory_order_seq_cst);
       }
       return val; 
     }
@@ -177,7 +178,6 @@ namespace lazy {
       // This is a best-effort construct
       std::vector<std::atomic<Time>> last_substantiations_;
       // TODO free cols
-
   };
 
 } // namespace lazy

@@ -65,9 +65,8 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     bool found = false;
 
     auto& bucket = column[slot];
-    auto& curr = bucket.head_;
-    Bucket::BucketNode* e = nullptr;
-    while ((e = curr.load(std::memory_order_seq_cst)) != nullptr) {
+    Bucket::BucketNode* e = bucket.head_.load(std::memory_order_seq_cst);
+    while (e != nullptr) {
         entry = e->entry_.load(std::memory_order_seq_cst);
         cout << "entry for slot " << slot << " has time " << entry.t_ << endl;
         if (entry.has_time(t)) {
@@ -77,7 +76,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
             cout << "found desired entry at time " << entry.t_ << endl;
             break;
         }
-        curr = e->next_.load(std::memory_order_seq_cst);
+        e = e->next_.load(std::memory_order_seq_cst);
     }
 
     // If for some reason the value was not found (i.e some thread was asked to 
@@ -120,13 +119,13 @@ int LinkedTable::safe_read_int(int slot, int col, Time t) {
     // TODO: Keep track of the pointer that previously held the entry
     // and re-load the data itself? The entry should be written to inplace
     // so there should be no need to retraverse the list
-    auto& curr_ = column[slot].head_;
-    while ((e = curr_.load(std::memory_order_seq_cst)) != nullptr) {
+    e = column[slot].head_.load(std::memory_order_seq_cst);
+    while (e != nullptr) {
         entry = e->entry_.load(std::memory_order_seq_cst);
         if (entry.has_time(t)) {
             return entry.val_;
         }
-        curr_ = e->next_.load(std::memory_order_seq_cst);
+        e = e->next_.load(std::memory_order_seq_cst);
     }
     throw std::runtime_error("unreachable");
 }
@@ -153,6 +152,7 @@ int LinkedTable::checksum() {
     auto& col = (*cols_)[0];
     int sum = 0;
     for (int i = 0; i < nrows; i++) {
+        cout << "slot " << i << " latest val computation " << endl;
         sum += col.data_[i].latest_value();
     }
     return sum;
