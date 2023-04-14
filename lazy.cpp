@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include <vector>
 #include <thread>
 #include <random>
@@ -28,14 +29,6 @@ void sticky_fn(std::vector<Request*>& reqs) {
 }
 
 void client_calls(const std::vector<std::pair<int, int>>& writes) {
-  std::random_device rd;  
-  std::mt19937 gen(rd());  
-
-  std::uniform_int_distribution<int> dis(0, writes.size() - 1);
-  auto idx = dis(gen);
-
-  auto slot = writes[idx].first;
-  auto time = writes[idx].second;
   cout << "trying to read slot " << writes[0].first << " at time " << 2 << endl;
   Globals::table_->safe_read_int(writes[0].first, 0, 2);
   cout << "trying to read slot " << writes[3].first << " at time " << 3 << endl;
@@ -55,13 +48,31 @@ int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   return 3; // 3 writes
 }
 
-Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
+Writes::Writes(std::mt19937& gen) {
   // each transaction writes 3 ints
+  // For now, only allow 3 different writes in each transaction
+  // as to avoid two stickies being written to the same slot in the same epoch
+  // TODO: fix this problem
+
   std::uniform_int_distribution<int> dis(1, Globals::n_slots - 1);  // define the distribution
-  int w1 = dis(gen);
-  int w2 = dis(gen);
-  int w3 = dis(gen);
-  std::vector<int> ws{w1, w2, w3};
+  std::set<int> slots;
+  while (slots.size() != 3) {
+    auto before = slots.size();
+    int write = dis(gen);
+    slots.insert(write);
+    if (slots.size() != before) {
+      ws_.push_back(write);
+    }
+  }
+}
+
+Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
+  Writes w(gen);
+  int w1 = w.ws_[0];
+  int w2 = w.ws_[1];
+  int w3 = w.ws_[2];
+
+  std::vector<int> ws{w.ws_.begin(), w.ws_.end()};
   std::vector<int> rs = ws;
   auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
 

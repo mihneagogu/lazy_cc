@@ -41,7 +41,8 @@ Request* DependencyGraph::tx_of(Tid tid) {
 }
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
-  // TODO: Double-write in same tx problem causing sticky with same timestamp
+  // TODO: Fix Double-write in same tx problem causing sticky with same timestamp
+  // (Use timestamp range for tx?)
   constexpr bool demo = true;
 
   // A transaction T1 depends on another, T2, if
