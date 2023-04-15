@@ -28,6 +28,11 @@ namespace lazy {
   Tid Request::request_cnt = 0;
 
   void Request::insert_sticky(int slot) {
+    if (Globals::dep_.time_of_last_write_to(slot) == epoch_) {
+      // If we have already written a sticky to this slot for our epoch
+      // don't write another entry in the slot's bucket
+      return;
+    }
     Globals::table_->insert_at(0, slot, -epoch_, tid_);
   }
 
@@ -47,9 +52,28 @@ namespace lazy {
   void Request::stickify() {
     if (rw_known_in_advance_) {
       Globals::dep_.check_dependencies(tid_, read_set_);
-      for (int slot : write_set_) {
-        insert_sticky(slot);
-      }
+      
+      // TODO: add the read times to the vector<Operation> rather than hardcoded
+      // for (int slot : write_set_) {
+        // insert_sticky(slot);
+        // Globals::dep_.sticky_written(tid_, slot);
+      // }
+
+      read1_t_ = Globals::dep_.time_of_last_write_to(write1_);
+      cout << "tx " << tid_ << " reads " << write1_ << " from write performed at " << read1_t_ << endl;
+      insert_sticky(write1_);
+      Globals::dep_.sticky_written(tid_, write1_);
+
+      read2_t_ = Globals::dep_.time_of_last_write_to(write2_);
+      cout << "tx " << tid_ << " reads " << write2_ << " from write performed at " << read2_t_ << endl;
+      insert_sticky(write2_);
+      Globals::dep_.sticky_written(tid_, write2_);
+
+      read3_t_ = Globals::dep_.time_of_last_write_to(write3_);
+      cout << "tx " << tid_ << " reads " << write3_ << " from write performed at " << read3_t_ << endl;
+      insert_sticky(write3_);
+      Globals::dep_.sticky_written(tid_, write3_);
+
       stickified_.store(true, std::memory_order_seq_cst);
       return;
     }

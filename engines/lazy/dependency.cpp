@@ -20,7 +20,6 @@ void DependencyGraph::add_txs(const std::vector<Request*>& txs) {
 
 Time DependencyGraph::time_of_last_write_to(int slot) {
   Tid writer = last_writes_[slot].tx_;
-  cout << "last writer tot slot " << slot << " tid : " << writer << endl;
   if (writer == LastWrite::NO_TX) {
     return constants::T0;
   }
@@ -51,18 +50,21 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
   bool has_dep = false;
 
 
-  auto add_dep_on_read = [this, &tx, &has_dep, &read, &write](int read_slot) -> Time {
+  auto add_dep_on_read = [this, &tx, &has_dep, &read, &write](int read_slot) {
+    // FIXME: This actually introduces faux Read-After-Write tx dependency if the 
+    // read is performed in reality on a previous blind write of the same tx
     const auto& prev = last_writes_[read_slot];
     if (prev.tx_ != LastWrite::NO_TX && prev.tx_ != tx) {
       if (!has_dep) {
         // SUG: use upgradable locks from boost?
+        // SUG: Store deps in array and insert them all at once
+        // to avoid holding the write lock while traversing the whole set
         read.unlock();
         write.lock();
       }
       has_dep = true;
       dependencies_[tx].push_back(tx_of(prev.tx_));
     }
-    return prev.tx_ == LastWrite::NO_TX ? constants::T0 : tx_of(prev.tx_)->time();
   };
 
   // Is it possible for another tx to modify the last write we are stickifying the slot?
@@ -80,18 +82,9 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
     
     auto* req = tx_of(tx);
     
-    Time t1 = add_dep_on_read(req->write1_);
-    sticky_written(tx, req->write1_);
-    Time t2 = add_dep_on_read(req->write2_);
-    sticky_written(tx, req->write2_);
-    Time t3 = add_dep_on_read(req->write3_);
-    sticky_written(tx, req->write3_);
-    req->read1_t_ = t1;
-    req->read2_t_ = t2;
-    req->read3_t_ = t3;
-    cout << "tx " << tx << " reads " << req->write1_ << " from write performed at " << t1 << endl;
-    cout << "tx " << tx << " reads " << req->write2_ << " from write performed at " << t2 << endl;
-    cout << "tx " << tx << " reads " << req->write3_ << " from write performed at " << t3 << endl;
+    add_dep_on_read(req->write1_);
+    add_dep_on_read(req->write2_);
+    add_dep_on_read(req->write3_);
   }
 
   if (has_dep) {

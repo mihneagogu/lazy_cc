@@ -24,10 +24,10 @@ void sticky_fn(std::vector<Request*>& reqs) {
 }
 
 void client_calls(const std::vector<std::pair<int, int>>& writes) {
-  cout << "trying to read slot " << writes[0].first << " at time " << 2 << endl;
-  Globals::table_->safe_read_int(writes[0].first, 0, 2, CallingStatus::client());
   cout << "trying to read slot " << writes[3].first << " at time " << 3 << endl;
   Globals::table_->safe_read_int(writes[3].first, 0, 3, CallingStatus::client());
+  cout << "trying to read slot " << writes[0].first << " at time " << 2 << endl;
+  Globals::table_->safe_read_int(writes[0].first, 0, 2, CallingStatus::client());
 }
 
 int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {

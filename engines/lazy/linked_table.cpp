@@ -47,6 +47,11 @@ void LinkedTable::insert_at(int col, int bucket, Time t, int val) {
 }
 
 int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
+    // TODO: Add a last_physical_write field to each slot. Highly likely that
+    // a slot will be read right after it's written because of a tx dependency,
+    // so we can shortcut the whole linked list traversal business
+
+
     if (t == constants::T0) {
         // For now we assume the table was created
         // at time constants::T0 and each slot has value 1, so if we receive
@@ -115,8 +120,10 @@ int LinkedTable::checksum() {
     auto& col = (*cols_)[0];
     int sum = 0;
     for (int i = 0; i < nrows; i++) {
-        cout << "slot " << i << " latest val computation " << endl;
-        sum += col.data_[i].latest_value();
+        cout << "slot " << i << " latest val : ";
+        int val = col.data_[i].latest_value();
+        cout << val << endl;
+        sum += val;
     }
     return sum;
 }
