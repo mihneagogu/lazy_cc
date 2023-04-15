@@ -51,15 +51,9 @@ Writes::Writes(std::mt19937& gen) {
   // TODO: fix this problem
 
   std::uniform_int_distribution<int> dis(1, Globals::n_slots - 1);  // define the distribution
-  std::set<int> slots;
-  while (slots.size() != 3) {
-    auto before = slots.size();
-    int write = dis(gen);
-    slots.insert(write);
-    if (slots.size() != before) {
-      ws_.push_back(write);
-    }
-  }
+  ws_.push_back(dis(gen));
+  ws_.push_back(dis(gen));
+  ws_.push_back(dis(gen));
 }
 
 Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
