@@ -25,19 +25,20 @@ void sticky_fn(std::vector<Request*>& reqs) {
 
 void client_calls(const std::vector<std::pair<int, int>>& writes) {
   cout << "trying to read slot " << writes[0].first << " at time " << 2 << endl;
-  Globals::table_->safe_read_int(writes[0].first, 0, 2);
+  Globals::table_->safe_read_int(writes[0].first, 0, 2, CallingStatus::client());
   cout << "trying to read slot " << writes[3].first << " at time " << 3 << endl;
-  Globals::table_->safe_read_int(writes[3].first, 0, 3);
+  Globals::table_->safe_read_int(writes[3].first, 0, 3, CallingStatus::client());
 }
 
 int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
   Time tx_t = self->time();
+  auto tx_call = CallingStatus(self->tx_id());
 
-  int r1 = tb->safe_read_int(w1, 0, self->read1_t_);
+  int r1 = tb->safe_read_int(w1, 0, self->read1_t_, tx_call);
   tb->safe_write_int(w1, 0, r1 + 1, tx_t);
-  int r2 = tb->safe_read_int(w2, 0, self->read2_t_);
+  int r2 = tb->safe_read_int(w2, 0, self->read2_t_, tx_call);
   tb->safe_write_int(w2, 0, r2 + 1, tx_t);
-  int r3 = tb->safe_read_int(w3, 0, self->read3_t_);
+  int r3 = tb->safe_read_int(w3, 0, self->read3_t_, tx_call);
   tb->safe_write_int(w3, 0, r3 + 1, tx_t);
 
   return 3; // 3 writes
@@ -117,6 +118,7 @@ void run() {
   auto* cols = new std::vector<LinkedIntColumn>();
   cols->emplace_back(std::move(data));
   Globals::table_ = new LinkedTable(cols);
+  Globals::txs_ = TxCollection(to_stickify);
 
   std::vector<std::thread> ts;
   sticky_fn(to_stickify);

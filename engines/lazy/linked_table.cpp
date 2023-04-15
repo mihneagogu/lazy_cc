@@ -46,88 +46,51 @@ void LinkedTable::insert_at(int col, int bucket, Time t, int val) {
     (*cols_)[col].insert_at(bucket, t, val);
 }
 
-int LinkedTable::safe_read_int(int slot, int col, Time t) {
+int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
     if (t == constants::T0) {
-        // TODO: remove hardcode. But for now we assume the table was created
+        // For now we assume the table was created
         // at time constants::T0 and each slot has value 1, so if we receive
         // a request for a read at time consants::T0 it means it must be a 1,
         // and it wasn't performed by any transaction, but it comes from the initialisation
         return 1;
     }
+
+    // Distinguish between a safe read being called by a client and one being 
+    // called by the tx during computation itself. If it's a client call, 
+    // check whether tx has finished. If it's still running, call 
+    // substantiation and wait on it to finish. It's imoprtant that the 
+    // decision is based on the caller, rather than the value of the entry, 
+    // since one entry at time t could represent more than 1 write, 
+    // and even if the entry is not a sticky, the tx could still be running 
+    // (consider a tx which performs two writes. After the first write is 
+    // performed the entry is not a sticky anymore, but the tx has not been 
+    // fully substantiated either. Transactions are atomic, which means 
+    // no intermetidate state should be leaked to the client.
+
     cout << "safe read int slot " << slot << " which was written at time " << t << endl;
-    // ------------------------------
-    // When a client requests a read then it finds the latest version of a value,
-    // then gets the occupied counter, then tries to safe read the value at that counter.
     auto& column = (*cols_)[col].data_;
-    int64_t val;
-    Entry::EntryData entry;
-    Time entry_t;
-    bool found = false;
-
-    auto& bucket = column[slot];
-    Bucket::BucketNode* e = bucket.head_.load(std::memory_order_seq_cst);
-    while (e != nullptr) {
-        entry = e->entry_.load(std::memory_order_seq_cst);
-        cout << "entry for slot " << slot << " has time " << entry.t_ << endl;
-        if (entry.has_time(t)) {
-            found = true;
-            val = entry.val_;
-            entry_t = entry.t_;
-            cout << "found desired entry at time " << entry.t_ << endl;
-            break;
-        }
-        e = e->next_.load(std::memory_order_seq_cst);
-    }
-
-    // If for some reason the value was not found (i.e some thread was asked to 
-    // read it but the stickification thread has not even written the sticky) return
-    // INT_MIN and log
-    if (!found) {
-      // TODO: log this somewhere (in an append-only log?)
-      cout << "Entry " << slot << " not found for time " << t << " | "
-          << " slot has " << Globals::table_->size_at(slot, 0) << " entries " << endl;
-      return std::numeric_limits<int>::min();
-    }
-
-    // The entry might not be a sticky but last_subst < t
-    // Some thread might have written to it but not updated last_substantiations
-    // or two threads with different timestamp wrote to last_substantiations
-    // but the one with lower time won.
-    if (!entry.is_sticky()) {
-        // Nobody will ever write this slot anymore, so just 
-        // find the value
-        return val;
-    }
-
-    cout << "sticky entry has time " << entry_t << endl;
-    assert(entry_t < 0); // This must be a sticky! 
-    // Nobody has substantiated this sticky, so let's do it ourselves.
-    Tid tx_id = val;
-    auto* tx = Globals::dep_.tx_of(tx_id);
-    auto status = tx->execution_status();
-    if (status != ExecutionStatus::EXECUTING_NOW) {
-        // Go on if we haven't started substantiating the transaction.
-        // If the tx is being executed, it means that the transaction has more
-        // safe_read_int() calls and we are the 2nd (or bigger) call.
-        cout << "substantiating txid " <<  tx->tx_id() << endl;
-        tx->substantiate();
-        cout << "done substantiating txid " <<  tx->tx_id() << endl;
+    auto responsible_tx = Globals::txs_.at(t);
+    auto status = responsible_tx->execution_status();
+    if (status == ExecutionStatus::DONE) {
+        auto e = column[slot].entry_at(t);
+        assert(e.has_value());
+        cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
+        return e->val_;
+    };
+    if (call.is_client()) {
+        // either substantiate (or wait for substantiation to finish) and read the value afterwards
+        cout << " client substantiating txid " <<  responsible_tx->tx_id() << endl;
+        responsible_tx->substantiate();
+        cout << responsible_tx->tx_id() << " done substantiating via client call" << endl;
     } else {
-        cout << "avoiding re-entrant call to substantiate() for tx " << tx->tx_id() << endl;
+        cout << "read performed by tx " << call.get_tx() << " with time " << Globals::dep_.tx_of(call.get_tx())->time() << " on slot " << slot << " from time " << t << endl;
     }
-
-    // TODO: Keep track of the pointer that previously held the entry
-    // and re-load the data itself? The entry should be written to inplace
-    // so there should be no need to retraverse the list
-    e = column[slot].head_.load(std::memory_order_seq_cst);
-    while (e != nullptr) {
-        entry = e->entry_.load(std::memory_order_seq_cst);
-        if (entry.has_time(t)) {
-            return entry.val_;
-        }
-        e = e->next_.load(std::memory_order_seq_cst);
-    }
-    throw std::runtime_error("unreachable");
+    // At this point all the writes that this tx depends on
+    auto e = column[slot].entry_at(t);
+    assert(e.has_value());
+    assert(!e->is_sticky());
+    cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
+    return e->val_;
 }
 
 void LinkedTable::safe_write_int(int slot, int col, int val, Time t) {

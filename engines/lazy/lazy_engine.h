@@ -6,20 +6,13 @@
 #include <atomic>
 
 #include "types.h"
+#include "tx_collection.h"
 #include "dependency.h"
 
 
 namespace lazy {
 
   class LinkedTable;
-
-  namespace constants {
-    static constexpr int64_t T0 = 1;
-    static constexpr Tid GENESIS_TX = 0;
-    static constexpr int64_t T_INVALID = std::numeric_limits<int>::max();
-    static constexpr int TIMESTAMPS_PER_TUPLE = 5;
-  } // namespace constants
-
 
   class Clock {
     public:
@@ -29,7 +22,7 @@ namespace lazy {
     private:
       // SUG: Use something which doesn't hammer this variable in a concurrent
       // context?
-    std::atomic<Time> current_time_; 
+      std::atomic<Time> current_time_; 
   };
 
   static Clock clock;
@@ -41,6 +34,7 @@ namespace lazy {
       static Clock clock_;
       static LinkedTable* table_;
       static DependencyGraph dep_;
+      static TxCollection txs_;
       static void shutdown();
 
       // Details of the experiment
@@ -72,30 +66,30 @@ logic if this is sound? Maybe another thread which analyzes transaction structur
 while it's not being substantiated)
 */
 
-/*
-   To actually store an array of transcations probably need type erasure 
-    or clasic c-style function pointers
-  void transaction1(Database& db) {
-    // this is actual execution
-    db->tuple_a.x = db->tuple_s.b * db->tuple_z.a;
-    db->tuple_b.x = 2;
-    db->tuple_c.y = 3;
-    db->tuple_d.z = 4;
+  /*
+     To actually store an array of transcations probably need type erasure 
+     or clasic c-style function pointers
+     void transaction1(Database& db) {
+  // this is actual execution
+  db->tuple_a.x = db->tuple_s.b * db->tuple_z.a;
+  db->tuple_b.x = 2;
+  db->tuple_c.y = 3;
+  db->tuple_d.z = 4;
   }
 
   After sitckification phase we should store something like this, so perhaps
   besides the code itself there should be an interpreted version of the code which
   contains the commands [Write(...) = Read(...) * Read(...), Write(...) = 2]
   class Trans {
-    function_pointer;
+  function_pointer;
 
-    to be determined while looking at transaction code or by partially running
-    it
-    read_set; 
+  to be determined while looking at transaction code or by partially running
+  it
+  read_set; 
 
-    to be determined while looking at transaction code or by partially running
-    it
-    write_set; <- to be determined while looking at transaction code
+  to be determined while looking at transaction code or by partially running
+  it
+  write_set; <- to be determined while looking at transaction code
   }
 
   Generally, transactions are split between now and later phases:

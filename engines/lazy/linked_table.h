@@ -4,6 +4,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <atomic>
+#include <optional>
 #include <cstdint>
 #include <list>
 #include <optional>
@@ -66,6 +67,20 @@ namespace lazy {
 
     int size() const {
       return size_.load();
+    }
+
+    std::optional<Entry::EntryData> entry_at(Time t) {
+      Bucket::BucketNode* e = head_.load(std::memory_order_seq_cst);
+      Entry::EntryData entry;
+      while (e != nullptr) {
+          entry = e->entry_.load(std::memory_order_seq_cst);
+          if (entry.has_time(t)) {
+              cout << "found desired entry at time " << entry.t_ << endl;
+              return {entry};
+          }
+          e = e->next_.load(std::memory_order_seq_cst);
+      }
+      return std::nullopt;
     }
 
     void write_at(Time t, int val) {
@@ -150,7 +165,7 @@ namespace lazy {
         int rows() const;
         void insert_at(int col, int bucket, Time t, int val);
         
-        int safe_read_int(int slot, int col, Time t);
+        int safe_read_int(int slot, int col, Time t, CallingStatus call);
         void safe_write_int(int slot, int col, int val, Time t);
 
         // TODO remove

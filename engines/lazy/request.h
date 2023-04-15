@@ -73,7 +73,6 @@ namespace lazy {
       set_request_time();
     }
 
-      /* Read the operations and decide the read-set and write-set of a transaction */
       void stickify();
       SubstantiateResult substantiate();
       bool was_performed() const;

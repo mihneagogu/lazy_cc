@@ -41,13 +41,6 @@ Request* DependencyGraph::tx_of(Tid tid) {
 }
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
-  // TODO: Fix Double-write in same tx problem causing sticky with same timestamp
-  // Solution: We can actually write to same entry, and in last_writes_ keep a pointer
-  // to the entry. We can simply write to the same entry twice. 
-  // If the two writes have disjoint dependencies, this doesn't matter at all.
-  // If the second write uses the first write to read the value first, it's still not a problem
-  // since it can read the entry and then overwrite it. Can someone else perform a write to the same slot at the same time between the two entries? No, since only the stickification thread writes a sticky to it. Can a thread see the value inbetween the two writes? No, since it would have to wait for the substantiation mechanism to finish running.
-  
   constexpr bool demo = true;
 
   // A transaction T1 depends on another, T2, if

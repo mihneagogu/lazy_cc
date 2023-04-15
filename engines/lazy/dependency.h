@@ -41,6 +41,7 @@ class DependencyGraph {
     mutable std::shared_mutex global_lock_;
     std::unordered_map<Tid, std::vector<Request*>> dependencies_;
     std::unordered_map<Tid, Request*> txs_;
+    std::vector<Request*> requests_;
   private:
     std::vector<LastWrite> last_writes_;
 };
