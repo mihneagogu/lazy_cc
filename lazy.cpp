@@ -76,8 +76,7 @@ Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
   writes.emplace_back(w2, req->time());
   writes.emplace_back(w3, req->time());
 
-  cout << "req " << req->tx_id() << " w1 w2 w3 ";
-  cout << w1 << " " << w2 << " " << w3 << endl;
+  // cout << w1 << " " << w2 << " " << w3 << endl;
   req->set_write_to(w1, w2, w3);
   return req;
 }
@@ -103,7 +102,6 @@ void run() {
   to_stickify.reserve(Globals::tx_count);
 
   for (int i = 0; i < Globals::subst_cores; i++) {
-    cout << Globals::tx_count / cores << " for each core " << endl;
     txs[i].reserve(Globals::tx_count / cores);
     for (int j = 0; j < Globals::tx_count / cores; j++) {
       auto* req = mock_tx(gen, writes);

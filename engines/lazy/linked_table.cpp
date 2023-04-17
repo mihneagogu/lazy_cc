@@ -72,29 +72,29 @@ int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
     // fully substantiated either. Transactions are atomic, which means 
     // no intermetidate state should be leaked to the client.
 
-    cout << "safe read int slot " << slot << " which was written at time " << t << endl;
+    // cout << "safe read int slot " << slot << " which was written at time " << t << endl;
     auto& column = (*cols_)[col].data_;
     auto responsible_tx = Globals::txs_.at(t);
     auto status = responsible_tx->execution_status();
     if (status == ExecutionStatus::DONE) {
         auto e = column[slot].entry_at(t);
         assert(e.has_value());
-        cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
+        // cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
         return e->val_;
     };
     if (call.is_client()) {
         // either substantiate (or wait for substantiation to finish) and read the value afterwards
-        cout << " client substantiating txid " <<  responsible_tx->tx_id() << endl;
+        // cout << " client substantiating txid " <<  responsible_tx->tx_id() << endl;
         responsible_tx->substantiate();
-        cout << responsible_tx->tx_id() << " done substantiating via client call" << endl;
+        // cout << responsible_tx->tx_id() << " done substantiating via client call" << endl;
     } else {
-        cout << "read performed by tx " << call.get_tx() << " with time " << Globals::dep_.tx_of(call.get_tx())->time() << " on slot " << slot << " from time " << t << endl;
+        // cout << "read performed by tx " << call.get_tx() << " with time " << Globals::dep_.tx_of(call.get_tx())->time() << " on slot " << slot << " from time " << t << endl;
     }
     // At this point all the writes that this tx depends on
     auto e = column[slot].entry_at(t);
     assert(e.has_value());
     assert(!e->is_sticky());
-    cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
+    // cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
     return e->val_;
 }
 
@@ -105,7 +105,7 @@ void LinkedTable::safe_write_int(int slot, int col, int val, Time t) {
     // they triggered a substification chain, or this was a blind write, in which
     // case this does not matter)
     
-    cout << "safe write to slot " << slot << endl;
+    // cout << "safe write to slot " << slot << endl;
     auto& column = (*cols_)[col].data_;
     auto& bucket = column[slot];
     bucket.write_at(t, val);
@@ -120,9 +120,7 @@ int LinkedTable::checksum() {
     auto& col = (*cols_)[0];
     int sum = 0;
     for (int i = 0; i < nrows; i++) {
-        cout << "slot " << i << " latest val : ";
         int val = col.data_[i].latest_value();
-        cout << val << endl;
         sum += val;
     }
     return sum;

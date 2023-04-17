@@ -75,7 +75,7 @@ namespace lazy {
       while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
           if (entry.has_time(t)) {
-              cout << "found desired entry at time " << entry.t_ << endl;
+              // cout << "found desired entry at time " << entry.t_ << endl;
               return {entry};
           }
           e = e->next_.load(std::memory_order_seq_cst);
@@ -105,7 +105,7 @@ namespace lazy {
       while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
           if (entry.t_ < 0) {
-            cout << "entry has t < 0: " << entry.t_ << endl;
+            // cout << "entry has t < 0: " << entry.t_ << endl;
           }
           assert(entry.t_ > 0);
           if (entry.t_ > latest) {

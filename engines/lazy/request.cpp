@@ -60,17 +60,17 @@ namespace lazy {
       // }
 
       read1_t_ = Globals::dep_.time_of_last_write_to(write1_);
-      cout << "tx " << tid_ << " reads " << write1_ << " from write performed at " << read1_t_ << endl;
+      // cout << "tx " << tid_ << " reads " << write1_ << " from write performed at " << read1_t_ << endl;
       insert_sticky(write1_);
       Globals::dep_.sticky_written(tid_, write1_);
 
       read2_t_ = Globals::dep_.time_of_last_write_to(write2_);
-      cout << "tx " << tid_ << " reads " << write2_ << " from write performed at " << read2_t_ << endl;
+      // cout << "tx " << tid_ << " reads " << write2_ << " from write performed at " << read2_t_ << endl;
       insert_sticky(write2_);
       Globals::dep_.sticky_written(tid_, write2_);
 
       read3_t_ = Globals::dep_.time_of_last_write_to(write3_);
-      cout << "tx " << tid_ << " reads " << write3_ << " from write performed at " << read3_t_ << endl;
+      // cout << "tx " << tid_ << " reads " << write3_ << " from write performed at " << read3_t_ << endl;
       insert_sticky(write3_);
       Globals::dep_.sticky_written(tid_, write3_);
 
@@ -94,7 +94,7 @@ namespace lazy {
   }
 
   SubstantiateResult Request::substantiate() {
-    cout << "substantiating this request with txid " << tx_id() << endl;
+    // cout << "substantiating this request with txid " << tx_id() << endl;
 		if (!stickified_.load(std::memory_order_seq_cst)) {
 			return SubstantiateResult::STALLED;
 		}
@@ -127,7 +127,7 @@ namespace lazy {
     
     // We are the only thread which can perform the computation. Do it now
     status_.store(ExecutionStatus::EXECUTING_NOW, std::memory_order_seq_cst);
-    cout << "calling fp!" << endl; 
+    // cout << "calling fp!" << endl; 
     fp_(this, Globals::table_, write1_, write2_, write3_);
 
     Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
