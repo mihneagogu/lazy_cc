@@ -6,6 +6,9 @@
 #include <memory>
 #include <utility>
 #include <atomic>
+#include <algorithm>
+#include <random>
+#include <chrono>
 
 #include "lazy.h"
 #include "engines/lazy/execution_worker.h"
@@ -24,10 +27,13 @@ void sticky_fn(std::vector<Request*>& reqs) {
 }
 
 void client_calls(const std::vector<std::pair<int, int>>& writes) {
-  cout << "trying to read slot " << writes[3].first << " at time " << 3 << endl;
-  Globals::table_->safe_read_int(writes[3].first, 0, 3, CallingStatus::client());
-  cout << "trying to read slot " << writes[0].first << " at time " << 2 << endl;
-  Globals::table_->safe_read_int(writes[0].first, 0, 2, CallingStatus::client());
+  std::vector<std::pair<int, int>> accesses = writes;
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+
+  shuffle (accesses.begin(), accesses.end(), std::default_random_engine(seed));
+  for (const auto& access : accesses) {
+    Globals::table_->safe_read_int(access.first, 0, access.second, CallingStatus::client());
+  }
 }
 
 int mock_computation(Request* self, LinkedTable* tb, int w1, int w2, int w3) {
@@ -90,13 +96,12 @@ void run() {
   // and assuming each slot has 2 ints (1 for the value 1 for the slot)
   // this is around 4GB of memory occupied by the table
 
-  std::vector<int> tasks;
-  std::vector<std::vector<Request*>> txs(4);
+  int cores = Globals::subst_cores;
+  std::vector<std::vector<Request*>> txs(cores);
   std::vector<Request*> to_stickify;
   std::vector<std::pair<int, int>> writes;
   to_stickify.reserve(Globals::tx_count);
 
-  int cores = Globals::subst_cores;
   for (int i = 0; i < Globals::subst_cores; i++) {
     cout << Globals::tx_count / cores << " for each core " << endl;
     txs[i].reserve(Globals::tx_count / cores);

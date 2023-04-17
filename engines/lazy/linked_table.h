@@ -88,10 +88,8 @@ namespace lazy {
       Entry::EntryData entry;
       while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
-          cout << "write entry with time " << entry.t_ << endl;
           if (entry.has_time(t)) {
               e->entry_.write(t, val, std::memory_order_seq_cst);
-              cout << "written to entry new value " << endl;
               return;
           }
           e = e->next_.load(std::memory_order_seq_cst);

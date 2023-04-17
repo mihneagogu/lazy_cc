@@ -38,8 +38,8 @@ namespace lazy {
       static void shutdown();
 
       // Details of the experiment
-      static constexpr int n_slots = 10;
-      static constexpr int tx_count = 2;
+      static constexpr int n_slots = 10000;
+      static constexpr int tx_count = 10000;
       static constexpr int subst_cores = 1;
   };
 
