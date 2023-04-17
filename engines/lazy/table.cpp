@@ -21,11 +21,11 @@ int Entry::get_value(std::memory_order ord) {
   return detail.val_;
 }
 
-inline Tid Entry::get_transaction_id(std::memory_order ord) {
+Tid Entry::get_transaction_id(std::memory_order ord) {
   return static_cast<Tid>(get_value(ord));
 }
 
-inline Time Entry::sticky_time(std::memory_order ord) {
+Time Entry::sticky_time(std::memory_order ord) {
   return -1 * write_time(ord);
 }
 
@@ -49,7 +49,7 @@ bool Entry::EntryData::has_time(Time t) const {
   return t_ == t || t_ == -t;
 }
 
-inline bool Entry::EntryData::is_sticky() const {
+bool Entry::EntryData::is_sticky() const {
   return t_ < 0;
 }
 

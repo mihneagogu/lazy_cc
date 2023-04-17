@@ -94,7 +94,7 @@ namespace lazy {
   }
 
   SubstantiateResult Request::substantiate() {
-    cout << "substantiating this request: " << this << " with txid " << tx_id() << endl;
+    cout << "substantiating this request with txid " << tx_id() << endl;
 		if (!stickified_.load(std::memory_order_seq_cst)) {
 			return SubstantiateResult::STALLED;
 		}
