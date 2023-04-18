@@ -1,6 +1,6 @@
 #include "lazy_engine.h"
 #include "dependency.h"
-#include "table.h"
+#include "entry.h"
 #include "linked_table.h"
 #include "tx_collection.h"
 

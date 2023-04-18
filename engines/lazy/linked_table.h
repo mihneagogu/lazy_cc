@@ -14,7 +14,7 @@
 #include "logs.h"
 #include "request.h"
 #include "types.h"
-#include "table.h"
+#include "entry.h"
 
 namespace lazy {
 
