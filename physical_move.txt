@@ -1,0 +1,39 @@
+The "physical move" strategy involves requests being copyable and movable
+and us having two piles of txs: unevaluated (stickified) and evaluated (substantiated)
+which are ideally in two different memory locations.
+
+This means that 
+- the trickery with the timestamps isn't necessary
+
+We have more approaches:
+1) Separate the table in two, and mark the absence of a record in the stickified table
+as the record being in computation. We can keep the two tables separate and use a 
+"coordinator" to mark the status of each tx "vec<atomic<Status>>" which is a global datastructure.
+When a client issues a call, to a record at a time we check the status of the tx.  
+This requires that the Tid corresponds to the execution time of the tx. Which shouldn't
+be a problem at first glance.
+
+If the entry is stickified but not in transit or done, it grabs the tx's lock and tries
+to perform it. Same if it's in transit. If it's done, it just reads the value.
+This has the extra property that the stickification thread need not use any atomic 
+datastructure for the records themselves, as the stickies are separate from the substantiated
+entries. The stickification thread performs all of the additions in single-threaded
+fashion and calculates the dependency graph. The substantiating thread only ever reads
+substantiated values, which reside in a different place. This uses more memory (since some records are duplciated)
+but it makes garbage collection easier, at least on the stickification side.
+
+Essentially it's the same mechanism as the current one, except the datastructure for checking
+status of the txs is centralised, which should make the performance of the stickification thread
+better.
+
+2) Perform an actual move from one list to the other. Or mark one entry as bad in one 
+of the tables and copy it to the second one. Benefits over tactic 1)? Does not need a centralized
+datastructure, but still requires the same amount of memory anyways and also requires the stickification table
+to be synchronized with the substantiation workers.
+
+So ... not much ... which means 1) appears to be a clear winner. Do either tactics ensure that txs are copyable
+and moveable? Essentially, yes, since all of the synchronisation book keeping is moved into a different
+global datastructure, so this should suffice. It also cancels the need for special entry valeus (negative timestamps) 
+for stikcified txs, since the accesses first go through the coordinator mechanism, which means that
+non-substantiated records are only inspected by the stickification thread.
+ 
