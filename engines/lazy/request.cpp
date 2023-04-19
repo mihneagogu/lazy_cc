@@ -1,5 +1,5 @@
 #include "request.h"
-#include "table.h"
+#include "entry.h"
 #include "linked_table.h"
 #include "lazy_engine.h"
 #include "logs.h"
