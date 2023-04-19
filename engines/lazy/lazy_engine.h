@@ -39,7 +39,7 @@ namespace lazy {
 
       // Details of the experiment
       static constexpr int n_slots = 100000;
-      static constexpr int tx_count = 400000;
+      static constexpr int tx_count = 400000; // IMPORTANT! tx_count should be divisible by subst_cores
       static constexpr int subst_cores = 4;
   };
 

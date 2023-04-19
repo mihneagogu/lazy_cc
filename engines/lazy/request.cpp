@@ -34,7 +34,10 @@ namespace lazy {
       // don't write another entry in the slot's bucket
       return;
     }
-    Globals::table_->insert_at(0, slot, -epoch_, tid_);
+    // No need to actually perform any insertion! All the needed data
+    // is recorded in the dependency graph
+
+    Globals::dep_.sticky_written(tid_, slot);
   }
 
   void Request::set_request_time() {
@@ -63,17 +66,12 @@ namespace lazy {
       read1_t_ = Globals::dep_.time_of_last_write_to(write1_);
       // cout << "tx " << tid_ << " reads " << write1_ << " from write performed at " << read1_t_ << endl;
       insert_sticky(write1_);
-      Globals::dep_.sticky_written(tid_, write1_);
-
       read2_t_ = Globals::dep_.time_of_last_write_to(write2_);
       // cout << "tx " << tid_ << " reads " << write2_ << " from write performed at " << read2_t_ << endl;
       insert_sticky(write2_);
-      Globals::dep_.sticky_written(tid_, write2_);
-
       read3_t_ = Globals::dep_.time_of_last_write_to(write3_);
       // cout << "tx " << tid_ << " reads " << write3_ << " from write performed at " << read3_t_ << endl;
       insert_sticky(write3_);
-      Globals::dep_.sticky_written(tid_, write3_);
 
       Globals::coord_->confirm_stickify(tid_);
       return;

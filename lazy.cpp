@@ -69,6 +69,7 @@ Request mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
   int w2 = w.ws_[1];
   int w3 = w.ws_[2];
 
+
   std::vector<int> ws{w.ws_.begin(), w.ws_.end()};
   std::vector<int> rs = ws;
   auto req = Request(true, mock_computation, {}, std::move(ws), std::move(rs));
@@ -77,7 +78,6 @@ Request mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
   writes.emplace_back(w2, req.time());
   writes.emplace_back(w3, req.time());
 
-  // cout << w1 << " " << w2 << " " << w3 << endl;
   req.set_write_to(w1, w2, w3);
   return req;
 }

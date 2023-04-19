@@ -19,7 +19,7 @@ namespace lazy {
   }
 
   RequestInfo& TxCoordinator::info_at(Time t) {
-    return txs_[t];
+    return txs_[t - constants::T0 - 1];
   }
 
   Request& TxCoordinator::tx_at(Time t) {

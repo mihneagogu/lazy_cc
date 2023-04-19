@@ -94,7 +94,7 @@ namespace lazy {
           }
           e = e->next_.load(std::memory_order_seq_cst);
       }
-      throw std::runtime_error("Trying to write to an entry at a time which doesn't exist");
+      push(t, val);
     }
   
     int latest_value() {
