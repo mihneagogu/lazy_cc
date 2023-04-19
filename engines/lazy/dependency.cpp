@@ -2,6 +2,7 @@
 
 
 #include "dependency.h"
+#include "tx_coordinator.h"
 #include "request.h"
 #include "logs.h"
 #include "../utils.h"
@@ -12,31 +13,21 @@ bool LastWrite::was_written() const {
   return tx_ != LastWrite::NO_TX;
 }
 
-void DependencyGraph::add_txs(const std::vector<Request*>& txs) {
-  for (auto* req : txs) {
-    txs_[req->tx_id()] = req;
-  }
-}
-
 Time DependencyGraph::time_of_last_write_to(int slot) {
   Tid writer = last_writes_[slot].tx_;
   if (writer == LastWrite::NO_TX) {
     return constants::T0;
   }
-  return tx_of(writer)->time();
+  return Globals::coord_->tx_at(writer).time();
 }
 
-std::vector<Request*> DependencyGraph::get_dependencies(Tid of) {
+std::vector<Tid> DependencyGraph::get_dependencies(Tid of) {
   std::shared_lock<std::shared_mutex> read(global_lock_ /* lock now*/);
   auto deps = dependencies_.find(of);
   if (deps == dependencies_.end()) {
     return {};
   }
   return deps->second;
-}
-
-Request* DependencyGraph::tx_of(Tid tid) {
-  return txs_[tid];
 }
 
 void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_set) {
@@ -63,7 +54,7 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
         write.lock();
       }
       has_dep = true;
-      dependencies_[tx].push_back(tx_of(prev.tx_));
+      dependencies_[tx].push_back(Globals::coord_->tx_at(prev.tx_).tx_id());
     }
   };
 
@@ -80,11 +71,11 @@ void DependencyGraph::check_dependencies(Tid tx, const std::vector<int> &read_se
     // After reading each value we then need to assert that we are the last writers
     // (in case we read the same value again)
     
-    auto* req = tx_of(tx);
+    auto& req = Globals::coord_->tx_at(tx);
     
-    add_dep_on_read(req->write1_);
-    add_dep_on_read(req->write2_);
-    add_dep_on_read(req->write3_);
+    add_dep_on_read(req.write1_);
+    add_dep_on_read(req.write2_);
+    add_dep_on_read(req.write3_);
   }
 
   if (has_dep) {

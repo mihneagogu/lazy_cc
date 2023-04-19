@@ -24,10 +24,6 @@ namespace lazy {
         int val_;
         EntryData() = default;
         EntryData(Time t, int val): t_(t), val_(val) {}
-
-        bool has_time(Time t) const;
-        bool is_sticky() const;
-        bool is_invalid() const;
       };
 
       Entry() = default;

@@ -56,20 +56,23 @@ namespace lazy {
 	};
 
   enum class ExecutionStatus {
-    DONE, EXECUTING_NOW, UNEXECUTED
+    DONE, EXECUTING_NOW, STICKY, UNINIT
   };
 
   class Request {
     public:
       using Tid = int;
 
+      Request(const Request& other) = default;
+      Request(Request&& other) = default;
+
       // SUG: Heuristic for how many slots would be a read or write so we can
       // pre-allocate
-      Request(bool is_tx, Computation code, std::vector<Operation>&& ops): is_tx_(is_tx), operations_(std::move(ops)),  fp_(code), rw_known_in_advance_(false) , stickified_(false), status_(ExecutionStatus::UNEXECUTED) {
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops): is_tx_(is_tx), operations_(std::move(ops)),  fp_(code), rw_known_in_advance_(false) {
         set_request_time();
       }
 
-      Request(bool is_tx, Computation code, std::vector<Operation>&& ops, std::vector<int>&& write_set, std::vector<int>&& read_set): is_tx_(is_tx), operations_(std::move(ops)), fp_(code), rw_known_in_advance_(true), read_set_(std::move(read_set)) , write_set_(std::move(write_set)), stickified_(false),  status_(ExecutionStatus::UNEXECUTED) {
+      Request(bool is_tx, Computation code, std::vector<Operation>&& ops, std::vector<int>&& write_set, std::vector<int>&& read_set): is_tx_(is_tx), operations_(std::move(ops)), fp_(code), rw_known_in_advance_(true), read_set_(std::move(read_set)) , write_set_(std::move(write_set)) {
       set_request_time();
     }
 
@@ -111,16 +114,10 @@ namespace lazy {
       // For testing purposes assume the r/w sets have been determined
       // without the overhead of interpretation
       bool rw_known_in_advance_;
-      std::vector<int> read_set_; 
-      std::vector<int> write_set_; 
+      std::vector<int> read_set_; // SUG: Move to RequestInfo?
+      std::vector<int> write_set_; // SUG: Move to RequestInfo?
       Tid tid_; // This request's id
       Time epoch_; // commit & execution time of the transaction
-
-      // Lock for the actualy computation execution of the transaction. 
-      // Acquired when a transaction is substantiated
-      std::mutex tx_lock_;
-      std::atomic<bool> stickified_;
-      std::atomic<ExecutionStatus> status_;
   };
 
 } // namespace lazy

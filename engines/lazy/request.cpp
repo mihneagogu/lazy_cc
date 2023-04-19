@@ -1,6 +1,7 @@
 #include "request.h"
 #include "entry.h"
 #include "linked_table.h"
+#include "tx_coordinator.h"
 #include "lazy_engine.h"
 #include "logs.h"
 #include "../utils.h"
@@ -37,8 +38,8 @@ namespace lazy {
   }
 
   void Request::set_request_time() {
-      tid_ = ++request_cnt;
       epoch_ = Globals::clock_.advance();
+      tid_ = epoch_;
   }
 
   Time Request::time() const {
@@ -74,7 +75,7 @@ namespace lazy {
       insert_sticky(write3_);
       Globals::dep_.sticky_written(tid_, write3_);
 
-      stickified_.store(true, std::memory_order_seq_cst);
+      Globals::coord_->confirm_stickify(tid_);
       return;
     }
 
@@ -90,22 +91,26 @@ namespace lazy {
       }
     }
     Globals::dep_.check_dependencies(tid_, read_set_);
-    stickified_.store(true, std::memory_order_seq_cst);
+    Globals::coord_->confirm_stickify(tid_);
   }
 
   SubstantiateResult Request::substantiate() {
     // cout << "substantiating this request with txid " << tx_id() << endl;
-		if (!stickified_.load(std::memory_order_seq_cst)) {
+    auto status = Globals::coord_->info_at(epoch_).status();
+		if (status == ExecutionStatus::UNINIT) {
+      throw std::runtime_error("UNINIT ENTRY");
 			return SubstantiateResult::STALLED;
 		}
-    if (was_performed()) {
+    if (status == ExecutionStatus::DONE) {
       // Someone else already executed this transaction!
       return SubstantiateResult::SUCCESS;
     }
+    // TODO: Add a executing_now check here too to avoid needlessly acquiring the lock
     
     // SUG: Use trylock and do something useful if someone is executing this?
-    std::scoped_lock<std::mutex> execute(tx_lock_);
-    auto status = execution_status();
+    std::scoped_lock<std::mutex> execute(Globals::coord_->info_at(epoch_).tx_lock_);
+    status = Globals::coord_->info_at(epoch_).status();
+
     if (status == ExecutionStatus::DONE) {
       // Maybe someone else executed it while we were trying to acquire the lock
       // in which case we don't need to reexecute the code
@@ -117,35 +122,25 @@ namespace lazy {
       return SubstantiateResult::RUNNING;
     }
 
-    // Substantiate all the transactions that this trans depends on
+    // Must be a sticky then! Substantiate all the transactions that this 
+    // tx depends on
     auto deps = Globals::dep_.get_dependencies(tid_);
-    for (auto* tx : deps) {
-      auto _res = tx->substantiate();
+    for (auto tx : deps) {
+      auto _res = Globals::coord_->tx_at(tx).substantiate();
 			// The result here should never be stalled or failed,
 			// since the sticky thread itself made the dependency graph
     }
     
     // We are the only thread which can perform the computation. Do it now
-    status_.store(ExecutionStatus::EXECUTING_NOW, std::memory_order_seq_cst);
+    auto& info = Globals::coord_->info_at(epoch_);
+
+    info.status_.store(ExecutionStatus::EXECUTING_NOW, std::memory_order_seq_cst);
     // cout << "calling fp!" << endl; 
     fp_(this, Globals::table_, write1_, write2_, write3_);
 
-    Globals::table_->enforce_wirte_set_substantiation(epoch_, write_set_);
-    status_.store(ExecutionStatus::DONE, std::memory_order_seq_cst);
+    info.status_.store(ExecutionStatus::DONE, std::memory_order_seq_cst);
 		return SubstantiateResult::SUCCESS;
   }
-
-  ExecutionStatus Request::execution_status() const {
-    return status_.load(std::memory_order_seq_cst);
-  }
-
-  bool Request::was_performed() const {
-    return execution_status() == ExecutionStatus::DONE;
-  }
-
-  bool Request::is_being_executed() const {
-    return execution_status() == ExecutionStatus::EXECUTING_NOW;
-  } 
 
 } // namespace lazy
 

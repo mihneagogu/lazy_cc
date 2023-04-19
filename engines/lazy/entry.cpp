@@ -37,16 +37,4 @@ Entry::EntryData Entry::load(std::memory_order ord) {
   return detail_.load(ord);
 }
 
-bool Entry::EntryData::is_invalid() const {
-  return t_ == constants::T_INVALID;
-}
-
-bool Entry::EntryData::has_time(Time t) const {
-  return t_ == t || t_ == -t;
-}
-
-bool Entry::EntryData::is_sticky() const {
-  return t_ < 0;
-}
-
 } // namespace lazy

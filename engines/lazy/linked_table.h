@@ -74,7 +74,7 @@ namespace lazy {
       Entry::EntryData entry;
       while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
-          if (entry.has_time(t)) {
+          if (entry.t_ == t) {
               // cout << "found desired entry at time " << entry.t_ << endl;
               return {entry};
           }
@@ -88,7 +88,7 @@ namespace lazy {
       Entry::EntryData entry;
       while (e != nullptr) {
           entry = e->entry_.load(std::memory_order_seq_cst);
-          if (entry.has_time(t)) {
+          if (entry.t_ == t) {
               e->entry_.write(t, val, std::memory_order_seq_cst);
               return;
           }
@@ -166,13 +166,7 @@ namespace lazy {
         int safe_read_int(int slot, int col, Time t, CallingStatus call);
         void safe_write_int(int slot, int col, int val, Time t);
 
-        // TODO remove
-        int size_at(int slot, int col) {
-          return (*cols_)[0].data_[slot].size();
-        }
         void safe_write_int(int slot, int col, int val, Time t, Tid as);
-        void enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set);
-
         int checksum();
 
       ~LinkedTable();

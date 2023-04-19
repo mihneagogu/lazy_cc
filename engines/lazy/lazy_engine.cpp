@@ -2,14 +2,14 @@
 #include "dependency.h"
 #include "entry.h"
 #include "linked_table.h"
-#include "tx_collection.h"
+#include "tx_coordinator.h"
 
 namespace lazy {
 
   Clock Globals::clock_ = Clock();
   LinkedTable* Globals::table_ = nullptr; // initialized later
   DependencyGraph Globals::dep_ = DependencyGraph(Globals::n_slots);
-  TxCollection Globals::txs_ = TxCollection();
+  TxCoordinator* Globals::coord_ = nullptr; // initialized later
 
 
   Time Clock::time() const { return current_time_.load(std::memory_order_seq_cst); }
@@ -18,6 +18,9 @@ namespace lazy {
   void Globals::shutdown() {
     if (Globals::table_) {
       delete Globals::table_;
+    }
+    if (Globals::coord_) {
+      delete Globals::coord_;
     }
   }
 

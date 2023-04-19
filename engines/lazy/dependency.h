@@ -28,20 +28,16 @@ class DependencyGraph {
       // header which doesn't cause mutually recursive header file inclusion
       last_writes_ = std::vector<LastWrite>(n_slots);
     }
-    void add_txs(const std::vector<Request*>& txs);
+
     /* Must be called without holding the lock. Will acquire a shared lock
      * and upgrade to exclusive in  case there is indeed a dependency */
     void check_dependencies(Tid tx, const std::vector<int>& read_set);
-    std::vector<Request*> get_dependencies(Tid of);
-    Request* tx_of(Tid tid);
+    std::vector<Tid> get_dependencies(Tid of);
     Time time_of_last_write_to(int slot);
-
     void sticky_written(Tid tx, int slot);
 
     mutable std::shared_mutex global_lock_;
-    std::unordered_map<Tid, std::vector<Request*>> dependencies_;
-    std::unordered_map<Tid, Request*> txs_;
-    std::vector<Request*> requests_;
+    std::unordered_map<Tid, std::vector<Tid>> dependencies_;
   private:
     std::vector<LastWrite> last_writes_;
 };

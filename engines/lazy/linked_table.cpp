@@ -1,4 +1,5 @@
 #include "linked_table.h"
+#include "tx_coordinator.h"
 #include "logs.h"
 
 #include <cassert>
@@ -74,8 +75,8 @@ int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
 
     // cout << "safe read int slot " << slot << " which was written at time " << t << endl;
     auto& column = (*cols_)[col].data_;
-    auto responsible_tx = Globals::txs_.at(t);
-    auto status = responsible_tx->execution_status();
+    auto& info = Globals::coord_->info_at(t);
+    auto status = info.status();
     if (status == ExecutionStatus::DONE) {
         auto e = column[slot].entry_at(t);
         assert(e.has_value());
@@ -85,7 +86,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
     if (call.is_client()) {
         // either substantiate (or wait for substantiation to finish) and read the value afterwards
         // cout << " client substantiating txid " <<  responsible_tx->tx_id() << endl;
-        responsible_tx->substantiate();
+        Globals::coord_->tx_at(t).substantiate();
         // cout << responsible_tx->tx_id() << " done substantiating via client call" << endl;
     } else {
         // cout << "read performed by tx " << call.get_tx() << " with time " << Globals::dep_.tx_of(call.get_tx())->time() << " on slot " << slot << " from time " << t << endl;
@@ -93,7 +94,7 @@ int LinkedTable::safe_read_int(int slot, int col, Time t, CallingStatus call) {
     // At this point all the writes that this tx depends on
     auto e = column[slot].entry_at(t);
     assert(e.has_value());
-    assert(!e->is_sticky());
+    assert(!Globals::coord_->info_at(t).is_sticky());
     // cout << "read to " << slot << " at t " << t << " has value " << e->val_ << endl;
     return e->val_;
 }
@@ -124,17 +125,6 @@ int LinkedTable::checksum() {
         sum += val;
     }
     return sum;
-}
-
-
-void LinkedTable::enforce_wirte_set_substantiation(Time new_time, const std::vector<int>& write_set) {
-  for (auto slot : write_set) {
-    Time before = last_substantiations_[slot].load(std::memory_order_seq_cst);
-    Time best_time = std::max(before, new_time);
-    // Note, this is a best-effort approach. We try our best to put the max slot in, but it's possible that a third thread performs this operation before our load and cas, therefore making the cas fail. We could ensure the highest slot by doing a CAS loop, however. last_substantiations is used as a heuristic, nonetheless, so it seems unnecessary
-    /* bool _succ = */ last_substantiations_[slot].compare_exchange_strong(before, best_time, std::memory_order_seq_cst);
-  }
-
 }
 
 LinkedTable::~LinkedTable() {

@@ -13,15 +13,16 @@
 #include "lazy.h"
 #include "engines/lazy/execution_worker.h"
 #include "engines/lazy/linked_table.h"
+#include "engines/lazy/tx_coordinator.h"
 
 using std::cout;
 using std::endl;
 
 namespace lazy {
 
-void sticky_fn(std::vector<Request*>& reqs) {
-  for (auto* req : reqs) {
-    req->stickify();
+void sticky_fn(Time last_tx) {
+  for (Time t = constants::T0 + 1; t <= last_tx; t++) {
+    Globals::coord_->tx_at(t).stickify();
   }
   cout << "stickification performed" << endl;
 }
@@ -62,7 +63,7 @@ Writes::Writes(std::mt19937& gen) {
   ws_.push_back(dis(gen));
 }
 
-Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
+Request mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
   Writes w(gen);
   int w1 = w.ws_[0];
   int w2 = w.ws_[1];
@@ -70,14 +71,14 @@ Request* mock_tx(std::mt19937& gen, std::vector<std::pair<int, int>>& writes) {
 
   std::vector<int> ws{w.ws_.begin(), w.ws_.end()};
   std::vector<int> rs = ws;
-  auto* req = new Request(true, mock_computation, {}, std::move(ws), std::move(rs));
+  auto req = Request(true, mock_computation, {}, std::move(ws), std::move(rs));
 
-  writes.emplace_back(w1, req->time());
-  writes.emplace_back(w2, req->time());
-  writes.emplace_back(w3, req->time());
+  writes.emplace_back(w1, req.time());
+  writes.emplace_back(w2, req.time());
+  writes.emplace_back(w3, req.time());
 
   // cout << w1 << " " << w2 << " " << w3 << endl;
-  req->set_write_to(w1, w2, w3);
+  req.set_write_to(w1, w2, w3);
   return req;
 }
 
@@ -96,29 +97,29 @@ void run() {
   // this is around 4GB of memory occupied by the table
 
   int cores = Globals::subst_cores;
-  std::vector<std::vector<Request*>> txs(cores);
-  std::vector<Request*> to_stickify;
+  std::vector<std::vector<Tid>> txs(cores);
+  std::vector<Request> to_stickify;
   std::vector<std::pair<int, int>> writes;
   to_stickify.reserve(Globals::tx_count);
+
 
   for (int i = 0; i < Globals::subst_cores; i++) {
     txs[i].reserve(Globals::tx_count / cores);
     for (int j = 0; j < Globals::tx_count / cores; j++) {
-      auto* req = mock_tx(gen, writes);
-      txs[i].emplace_back(req);
+      auto req = mock_tx(gen, writes);
+      txs[i].emplace_back(req.tx_id());
       to_stickify.emplace_back(req);
     }
   }
-  Globals::dep_.add_txs(to_stickify);
   
   std::vector<int> data(Globals::n_slots, 1);
   auto* cols = new std::vector<LinkedIntColumn>();
   cols->emplace_back(std::move(data));
   Globals::table_ = new LinkedTable(cols);
-  Globals::txs_ = TxCollection(to_stickify);
+  Globals::coord_ = new TxCoordinator(to_stickify);
 
   std::vector<std::thread> ts;
-  sticky_fn(to_stickify);
+  sticky_fn(Globals::tx_count + constants::T0);
   
   for (int i = 0; i < cores; i++) {
     ts.emplace_back(client_calls, std::ref(writes));
@@ -130,9 +131,6 @@ void run() {
   cout << "checksum at the end: " << Globals::table_->checksum() << endl;
 
   lazy::Globals::shutdown();
-  for (auto* req : to_stickify) {
-    delete req;
-  }
 
   /* TODO:
     On main process requests, give them to the thread which does substantiation layer,

@@ -6,13 +6,13 @@
 #include <atomic>
 
 #include "types.h"
-#include "tx_collection.h"
 #include "dependency.h"
 
 
 namespace lazy {
 
   class LinkedTable;
+  class TxCoordinator;
 
   class Clock {
     public:
@@ -34,7 +34,7 @@ namespace lazy {
       static Clock clock_;
       static LinkedTable* table_;
       static DependencyGraph dep_;
-      static TxCollection txs_;
+      static TxCoordinator* coord_;
       static void shutdown();
 
       // Details of the experiment
